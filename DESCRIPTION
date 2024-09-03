@@ -1,0 +1,18 @@
+Package: vpc
+Title: Variance Partitioning in Generalized Linear Mixed Models
+Version: 1.0.0
+Authors@R: 
+    person("Julius", "Olaifa", , "julius.olaifa@okstate.edu", role = c("aut", "cre"),
+           comment = c(ORCID = "0000-0002-3864-099X"))
+Description: The Variance Partitioning in Generalized Linear Mixed Models (GLMMs) 
+              package provides tools for estimating and interpreting the proportion 
+              of variance explained by different random effects in GLMMs.
+License: MIT + file LICENSE
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.2.3
+Imports: 
+    MASS,
+    methods,
+    pbapply,
+    tweedie
