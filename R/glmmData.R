@@ -105,6 +105,7 @@ batchGLMMData <- function(num_feat, X, beta, Sigma, ns, family, ...) {
 #' Supported values are `"nb"` for negative binomial and `"tw"` for Tweedie distribution.
 #' @param iter An integer specifying the number of datasets (features) to generate per parameter row.
 #' @param parallel A logical value indicating whether to use parallel processing. Default is `TRUE`.
+#' @param num_cores integer indicating number of cores to use fo fitting
 #'
 #' @return A numeric matrix where each row represents a generated dataset, and each column corresponds to a group specified in `ns`.
 #' @export
@@ -121,7 +122,7 @@ batchGLMMData <- function(num_feat, X, beta, Sigma, ns, family, ...) {
 #' sig22 <- 2
 #' paramMat <- expand.grid(b0=b0,b1=b1,phi=phi,sig11=sig11,sig12=sig12,sig22=sig22)
 #' parallelbatchGLMMData(paramMat, X, ns, family, iter=3, parallel=TRUE)
-parallelbatchGLMMData <- function(paramMat, X, ns, family, iter=1, parallel=TRUE) {
+parallelbatchGLMMData <- function(paramMat, X, ns, family, iter=1, parallel=TRUE, num_cores=NULL) {
 
   process_row <- function(i) {
     row <- as.numeric(paramMat[i, ])

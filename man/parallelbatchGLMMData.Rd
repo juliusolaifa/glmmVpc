@@ -4,7 +4,15 @@
 \alias{parallelbatchGLMMData}
 \title{Generate GLMM Data from a Parameter Matrix}
 \usage{
-parallelbatchGLMMData(paramMat, X, ns, family, iter = 1, parallel = TRUE)
+parallelbatchGLMMData(
+  paramMat,
+  X,
+  ns,
+  family,
+  iter = 1,
+  parallel = TRUE,
+  num_cores = NULL
+)
 }
 \arguments{
 \item{paramMat}{A matrix where each row contains parameters for generating a GLMM dataset.}
@@ -19,6 +27,8 @@ Supported values are \code{"nb"} for negative binomial and \code{"tw"} for Tweed
 \item{iter}{An integer specifying the number of datasets (features) to generate per parameter row.}
 
 \item{parallel}{A logical value indicating whether to use parallel processing. Default is \code{TRUE}.}
+
+\item{num_cores}{integer indicating number of cores to use fo fitting}
 }
 \value{
 A numeric matrix where each row represents a generated dataset, and each column corresponds to a group specified in \code{ns}.
