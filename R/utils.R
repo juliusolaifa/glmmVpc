@@ -118,3 +118,32 @@ vec2mat <- function(vec) {
   mat
 }
 
+mat2vec <- function(mat) {
+  n <- dim(mat)[1]
+  mat <- mat[!upper.tri(mat)]
+  names(mat) <- unlist(sapply(1:n, function(k) {
+    paste0('a',k,k:n)
+  }))
+  return(mat)
+}
+
+glmmTMBfamily <- function(family){
+    switch(family,
+            nb=glmmTMB::nbinom2,
+            tw=glmmTMB::tweedie,
+            ga=stats::gaussian,
+            stop(family, "is not a valid family.
+                     Available options are: nb, tw, ga.")
+    )
+}
+
+vcov.fit <- function(mod) {
+  vcov_ <- stats::vcov(mod, full=TRUE)
+  rownames(vcov_) <- colnames(vcov_) <- attr(rownames(vcov_), "names")
+  vcov_
+}
+
+logNormM <- function(mu, Sigma, k) {
+  return(exp(k*mu + k^2*Sigma/2))
+}
+
