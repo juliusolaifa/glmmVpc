@@ -113,17 +113,18 @@ batchGLMMData <- function(num_feat, X, beta, Sigma, ns, family, ...) {
 #' @examples
 #' ns <- c(10, 20)
 #' X <- rgen01(ns)
-#' family <- "nb"
 #' b0 <- 3
 #' b1 <- 7
 #' phi <- 0.8
+#' power <- 1.4
 #' sig11 <- 2
 #' sig12 <- 1
 #' sig22 <- 2
 #' paramMat <- expand.grid(b0=b0,b1=b1,phi=phi,sig11=sig11,sig12=sig12,sig22=sig22)
-#' parallelbatchGLMMData(paramMat, X, ns, family, iter=3, parallel=TRUE)
+#' paramMat2 <- expand.grid(b0=b0,b1=b1,phi=phi,sig11=sig11,sig12=sig12,sig22=sig22, power=power)
+#' parallelbatchGLMMData(paramMat, X, ns, "nb", iter=3, parallel=TRUE)
+#' parallelbatchGLMMData(paramMat2, X, ns, "tw", iter=3, parallel=TRUE)
 parallelbatchGLMMData <- function(paramMat, X, ns, family, iter=1, parallel=TRUE, num_cores=NULL) {
-
   process_row <- function(i) {
     row <- as.numeric(paramMat[i, ])
     param_names <- names(paramMat)
@@ -134,10 +135,9 @@ parallelbatchGLMMData <- function(paramMat, X, ns, family, iter=1, parallel=TRUE
     power <- row[grep("power", param_names)]
 
     gen_df <- batchGLMMData(num_feat=iter, X=X, beta=beta, Sigma=Sigma, ns=ns,
-                       family=family, theta=phi, power=power)
+                       family=family, theta=phi, phi=phi, power=power)
     return(gen_df[-1,])
   }
-
   if (parallel) {
 
     chk <- Sys.getenv("_R_CHECK_LIMIT_CORES_", "")
