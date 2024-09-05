@@ -41,13 +41,15 @@ to speed up the generation process, especially with large parameter matrices.
 \examples{
 ns <- c(10, 20)
 X <- rgen01(ns)
-family <- "nb"
 b0 <- 3
 b1 <- 7
 phi <- 0.8
+power <- 1.4
 sig11 <- 2
 sig12 <- 1
 sig22 <- 2
 paramMat <- expand.grid(b0=b0,b1=b1,phi=phi,sig11=sig11,sig12=sig12,sig22=sig22)
-parallelbatchGLMMData(paramMat, X, ns, family, iter=3, parallel=TRUE)
+paramMat2 <- expand.grid(b0=b0,b1=b1,phi=phi,sig11=sig11,sig12=sig12,sig22=sig22, power=power)
+parallelbatchGLMMData(paramMat, X, ns, "nb", iter=3, parallel=TRUE)
+parallelbatchGLMMData(paramMat2, X, ns, "tw", iter=3, parallel=TRUE)
 }
