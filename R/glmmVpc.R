@@ -149,7 +149,7 @@ batchGLMMFit <- function(formula, dataMat, X, group, family, cov_values, nulltes
     })
   }
 
-  fitobj <- fitobj[!sapply(fitobj, is.null)]
+  #fitobj <- fitobj[!sapply(fitobj, is.null)]
   names(fitobj) <- paste0("Feature", 1:nrow(dataMat))
   fitobj <- list("GlmmObj"=fitobj, "num_feat"=nrow(dataMat), "num_covariates"=length(cov_values))
   class(fitobj) <- "Glmmfit"
