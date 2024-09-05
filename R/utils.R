@@ -122,7 +122,7 @@ mat2vec <- function(mat) {
   n <- dim(mat)[1]
   mat <- mat[!upper.tri(mat)]
   names(mat) <- unlist(sapply(1:n, function(k) {
-    paste0('a',k,k:n)
+    paste0('sig',k,k:n)
   }))
   return(mat)
 }
@@ -146,4 +146,66 @@ vcov.fit <- function(mod) {
 logNormM <- function(mu, Sigma, k) {
   return(exp(k*mu + k^2*Sigma/2))
 }
+
+#' Variance Stabilizing Transformation
+#'
+#' @param counts A matrix of integer count data.
+#' @param blind Logical, whether to ignore the experimental design in the transformation.
+#' @param num_cores Number of workers
+#'
+#' @return A matrix of transformed values.
+#' @export
+#'
+#' @examples
+vstransform <- function(counts, blind = FALSE, num_cores=NULL) {
+  counts <- counts[!apply(counts, 1, function(row) any(row >= .Machine$integer.max)), ]
+  if (!is.matrix(counts) || any(is.na(counts))) {
+    stop("The 'counts' parameter must be a numeric matrix without missing values.")
+  }
+  if (!all(counts == floor(counts))) {
+    message("Rounding non-integer counts to nearest integers.")
+    counts <- round(counts)
+  }
+
+  if (is.null(colnames(counts))) {
+    stop("Error: 'counts' must have column names representing the sample groups.")
+  }
+  chk <- Sys.getenv("_R_CHECK_LIMIT_CORES_", "")
+  if (nzchar(chk) && chk == "TRUE") {
+    num_cores <- 2L
+  } else {
+    num_cores <- ifelse(!is.null(num_cores), num_cores,parallel::detectCores() - 1)
+  }
+
+  os <- Sys.info()["sysname"]
+  if (os == "Windows") {
+    param <- BiocParallel::SnowParam(workers = num_cores)
+  } else {
+    param <- BiocParallel::MulticoreParam(workers = num_cores)
+  }
+  if (is.null(colnames(counts))) {
+    stop("The 'counts' matrix must have column names indicating the sample groups.")
+  }
+
+  condition <- factor(colnames(counts))
+  dds <- DESeq2::DESeqDataSetFromMatrix(countData = counts,
+                                        colData = S4Vectors::DataFrame(condition),
+                                        design = ~ condition)
+  dds <- tryCatch({
+    DESeq2::estimateSizeFactors(dds)
+  }, error = function(e) {
+    if (grepl("cannot compute log geometric means", e$message)) {
+      message("Error in size factor estimation: Switching to 'poscounts' method")
+      DESeq2::estimateSizeFactors(dds, type = "poscounts")
+    } else {
+      stop(e)
+    }
+  })
+  dds <- DESeq2::DESeq(dds, parallel = TRUE, BPPARAM = param)
+  vst_data <- DESeq2::varianceStabilizingTransformation(dds, blind = blind)
+  vst_data_s3 <- SummarizedExperiment::assay(vst_data)
+  BiocParallel::bpstop(param)
+  return(vst_data_s3)
+}
+
 
