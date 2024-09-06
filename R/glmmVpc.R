@@ -203,17 +203,43 @@ coef.Glmmfit <- function(object, ...) {
 
   # Combine the coefficients into a data frame
   coefs <- data.frame(do.call(rbind, coef_lists))
-  rownames(coefs) <- paste0("Feature", 1:num_feat)
+  rownames(coefs) <- paste0("Feature", 1:nrow(coefs))
 
   return(coefs)
 }
 
 
-
+#' Variance Partition Coefficient for Negative Binomial Model
+#'
+#' This function calculates the Variance Partition Coefficient (VPC)
+#' for a negative binomial model, given the parameters.
+#'
+#' @param beta A vector of regression coefficients.
+#' @param Sigma A covariance matrix for the random effects.
+#' @param phi The overdispersion parameter (can be overridden by `theta`).
+#' @param x The covariate values.
+#' @param ... Optional additional arguments, such as `theta` to override `phi`.
+#'
+#' @return The VPC for the negative binomial model.
+#' @export
+#'
+#' @examples
+#' beta <- c(0.5, 1.2)
+#' Sigma <- matrix(c(0.1, 0.05, 0.05, 0.2), nrow = 2)
+#' phi <- 1.5
+#' x <- 0.7
+#' vpc.nb(beta, Sigma, phi, x)
 vpc.nb <- function(beta, Sigma, phi, x,...) {
   args <- list(...)
   if (!is.null(args$theta)) phi <- args$theta
   X <- Z <- c(1, x)
+  if (length(beta) != length(X)) {
+    stop("Length of beta must match the number of elements in X.")
+  }
+
+  # if (dim(Sigma)[1] != length(Z)) {
+  #   stop("row of Sigma matrix dimensions must match the length of Z.")
+  # }
   mu <- as.numeric(X %*% beta)
   sig <- as.numeric(Z %*% Sigma %*% Z)
   Ex <- logNormM(mu,sig,1)
@@ -223,8 +249,37 @@ vpc.nb <- function(beta, Sigma, phi, x,...) {
   vpcnb
 }
 
+#' Variance Partition Coefficient for Tweedie (Compound Poisson)
+#'
+#' This function calculates the Variance Partition Coefficient (VPC)
+#' for a transformed Weibull model with a power transformation.
+#'
+#' @param beta A vector of regression coefficients.
+#' @param Sigma A covariance matrix for the random effects.
+#' @param phi The overdispersion parameter.
+#' @param power The power parameter.
+#' @param x The covariate values.
+#' @param ... Optional additional arguments.
+#'
+#' @return The VPC for the transformed Weibull model.
+#' @export
+#'
+#' @examples
+#' beta <- c(0.5, 1.2)
+#' Sigma <- matrix(c(0.1, 0.05, 0.05, 0.2), nrow = 2)
+#' phi <- 1.5
+#' power <- 2
+#' x <- 0.7
+#' vpc.tw(beta, Sigma, phi, power, x)
 vpc.tw <- function(beta, Sigma, phi, power, x,...) {
   X <- Z <- c(1, x)
+  if (length(beta) != length(X)) {
+    stop("Length of beta must match the number of elements in X.")
+  }
+
+  # if (dim(Sigma)[1] != length(Z)) {
+  #   stop("Sigma matrix dimensions must match the length of Z.")
+  # }
   mu <- X %*% beta
   sig <- Z %*% Sigma %*% Z
   Ex <- logNormM(mu,sig,1)
@@ -235,8 +290,29 @@ vpc.tw <- function(beta, Sigma, phi, power, x,...) {
   vpctw
 }
 
+#' Variance Partition Coefficient for Gaussian Model
+#'
+#' This function calculates the Variance Partition Coefficient (VPC)
+#' for a Gaussian model, adjusting for random effects and overdispersion.
+#'
+#' @param Sigma A covariance matrix for the random effects.
+#' @param phi The overdispersion parameter.
+#' @param x The covariate values.
+#' @param ... Optional additional arguments.
+#'
+#' @return The VPC for the Gaussian model.
+#' @export
+#'
+#' @examples
+#' Sigma <- matrix(c(0.1, 0.05, 0.05, 0.2), nrow = 2)
+#' phi <- 1.5
+#' x <- 0.7
+#' vpc.ga(Sigma, phi, x)
 vpc.ga <- function(Sigma, phi, x, ...) {
   Z <- c(1, x)
+  # if (dim(Sigma)[1] != length(Z)) {
+  #   stop("Sigma matrix dimensions must match the length of Z.")
+  # }
   sig <- Z %*% Sigma %*% Z
   sig/(sig+phi^2)
 }
