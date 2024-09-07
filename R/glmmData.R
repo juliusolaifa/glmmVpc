@@ -37,12 +37,18 @@ createGLMMData <- function(X, beta, Sigma, ns, family, ...) {
   eta <-  eta(X, beta, Z, c(u))
   mu = split(x=exp(eta), f = rep(1:length(ns), ns))
   args <- list(...)
-  data <- switch(family,
-                 nb=mapply(MASS::rnegbin, n=ns, mu=mu, theta=args$theta),
-                 tw=mapply(tweedie::rtweedie, n=ns, mu=mu, phi=args$phi, power=args$power),
-                 stop(family, ": not implemented")
-  )
+  data <- tryCatch({
+    switch(family,
+                   nb=mapply(MASS::rnegbin, n=ns, mu=mu, theta=args$theta),
+                   tw=mapply(tweedie::rtweedie, n=ns, mu=mu, phi=args$phi, power=args$power),
+                   stop(family, ": not implemented")
+    )
+  }, error = function(e) {
+    warning("Error in generating data for family '", family, "': ", conditionMessage(e))
+    return(NULL)
+  })
   data <- if (methods::is(data, "list")) do.call(c, data) else c(data)
+  return(data)
 }
 
 
