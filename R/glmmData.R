@@ -96,7 +96,13 @@ batchGLMMData <- function(num_feat, X, beta, Sigma, ns, family, ...) {
   dataMatrix <- lapply(1:num_feat, function(x){
     createGLMMData(X, beta, Sigma, ns, family, ...)
   })
+
   dataMatrix <- do.call(rbind, dataMatrix)
+
+  if (is.null(dataMatrix)) {
+    return(NULL)
+  }
+
   rownames(dataMatrix) <- paste("Feature ", 1:nrow(dataMatrix))
   colnames(dataMatrix) <- groups(ns)
   return(rbind(X, dataMatrix))
@@ -156,7 +162,7 @@ parallelbatchGLMMData <- function(paramMat, X, ns, family, iter=1, parallel=TRUE
     if (nzchar(chk) && chk == "TRUE") {
       num_cores <- 2L
     } else {
-      num_cores <- parallel::detectCores() - 1
+      num_cores <- ifelse(is.null(num_cores), parallel::detectCores() - 1, num_cores)
     }
 
     cl <- parallel::makeCluster(num_cores)
@@ -172,8 +178,8 @@ parallelbatchGLMMData <- function(paramMat, X, ns, family, iter=1, parallel=TRUE
   }
 
   dataMatrix <- do.call(rbind, dataMatrix)
-  total_rows <- nrow(paramMat) * iter
-  rownames(dataMatrix) <- paste0("Feature", 1:total_rows)
+  #total_rows <- nrow(paramMat) * iter
+  rownames(dataMatrix) <- paste0("Feature", 1:nrow(dataMatrix))
   colnames(dataMatrix) <- groups(ns)
   return(rbind(X, dataMatrix))
 }
