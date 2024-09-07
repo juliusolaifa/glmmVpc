@@ -203,7 +203,7 @@ coef.Glmmfit <- function(object, ...) {
 
   # Combine the coefficients into a data frame
   coefs <- data.frame(do.call(rbind, coef_lists))
-  rownames(coefs) <- paste0("Feature", 1:nrow(coefs))
+  rownames(coefs) <- paste0("Feature", which(!sapply(coef_lists, is.null)))
 
   return(coefs)
 }
