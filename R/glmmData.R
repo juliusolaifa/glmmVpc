@@ -47,6 +47,12 @@ createGLMMData <- function(X, beta, Sigma, ns, family, ...) {
     warning("Error in generating data for family '", family, "': ", conditionMessage(e))
     return(NULL)
   })
+
+  if (is.null(data) || length(data) == 0) {
+    warning("Data generation failed, returning NULL")
+    return(NULL)
+  }
+
   data <- if (methods::is(data, "list")) do.call(c, data) else c(data)
   return(data)
 }
