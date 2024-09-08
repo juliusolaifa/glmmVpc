@@ -19,3 +19,15 @@ A matrix of transformed values.
 \description{
 Variance Stabilizing Transformation
 }
+\examples{
+ns <- c(10, 20)
+X <- rgen01(ns)
+beta <- c(0.5, 2)
+Sigma <- matrix(c(1, 0.5, 0.5, 1), nrow=2)
+family <- "nb"
+cov_values <- c(0.5, 1.5)
+formula <- y ~ x + (1 | group)
+datafrmMat <- batchGLMMData(5, X, beta, Sigma, ns, family = "nb", theta = 1.5)
+ys <- datafrmMat[-1,]; X <- datafrmMat[1,]; group <- colnames(datafrmMat)
+vstransform(ys, num_cores=4)
+}

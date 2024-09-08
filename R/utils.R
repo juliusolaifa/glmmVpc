@@ -103,15 +103,15 @@ rgen01 <- function(ns) {
 #'
 #' @examples
 #' # Convert a vector to a symmetric 3x3 matrix
-#' vec <- c(1, 2, 3, 4, 5, 6)
+#' vec <- c(2,1,2)
 #' vec2mat(vec)
 #'
 #' # Example with a longer vector for a larger matrix
 #' vec <- c(1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
 #' vec2mat(vec)
 vec2mat <- function(vec) {
-  n <- as.integer(stats::uniroot(function(x) {x^2 + x - 2*length(vec)},
-                                 lower = 1, upper = 10)$root)
+  k <- length(vec)
+  n <- (-1 + sqrt(1 + 8 * k)) / 2
   mat <- matrix(0, nrow = n, ncol = n)
   mat[!upper.tri(mat)] <- vec
   mat[upper.tri(mat)] <- t(mat)[upper.tri(mat)]
@@ -157,6 +157,16 @@ logNormM <- function(mu, Sigma, k) {
 #' @export
 #'
 #' @examples
+#' ns <- c(10, 20)
+#' X <- rgen01(ns)
+#' beta <- c(0.5, 2)
+#' Sigma <- matrix(c(1, 0.5, 0.5, 1), nrow=2)
+#' family <- "nb"
+#' cov_values <- c(0.5, 1.5)
+#' formula <- y ~ x + (1 | group)
+#' datafrmMat <- batchGLMMData(5, X, beta, Sigma, ns, family = "nb", theta = 1.5)
+#' ys <- datafrmMat[-1,]; X <- datafrmMat[1,]; group <- colnames(datafrmMat)
+#' vstransform(ys, num_cores=4)
 vstransform <- function(counts, blind = FALSE, num_cores=NULL) {
   counts <- counts[!apply(counts, 1, function(row) any(row >= .Machine$integer.max)), ]
   if (!is.matrix(counts) || any(is.na(counts))) {

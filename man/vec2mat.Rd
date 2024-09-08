@@ -17,7 +17,7 @@ This function converts a vector into a symmetric matrix by filling the lower tri
 }
 \examples{
 # Convert a vector to a symmetric 3x3 matrix
-vec <- c(1, 2, 3, 4, 5, 6)
+vec <- c(2,1,2)
 vec2mat(vec)
 
 # Example with a longer vector for a larger matrix
