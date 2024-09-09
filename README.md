@@ -2,7 +2,7 @@
 
 ## Package Overview
 
-This R package is designed to estimate and infer the Variance Partition Coefficient (VPC) from Generalized Linear Mixed Models (GLMMs). The package handles multiple GLMM families (e.g., Negative Binomial, Tweedie, Gaussian, comPoisson) and provides utilities for data generation, model fitting, and parallel computation.
+This R package is designed to estimate and make inference on the Variance Partition Coefficient (VPC) from Generalized Linear Mixed Models (GLMMs). The package handles multiple GLMM families (e.g., Negative Binomial, Tweedie, Gaussian, comPoisson) and provides utilities for data generation, model fitting, and parallel computation.
 
 ## File Structure
 
