@@ -43,7 +43,12 @@ R/
     └── vpc                               # Wrapper function to calculate VPC from fitted models
 ├── glmm_fitting.R           # Functions for fitting GLMM models (e.g., singleGLMMFit)
     ├── extractParametersByFamily          # Extracts family-specific parameters from a fitted GLMM
-    └── singleGLMMFit                      # Fits a GLMM model and extracts key model parameters
+    ├── singleGLMMFit                      # Fits a GLMM model and extracts key model parameters
+          ├── model.frame.glmmfit (generic)
+          ├── nobs.glmmfit
+          ├── vcov.glmmfit
+          └── logLik.glmmfit
+    └── batchGLMMFit
 ├── utils.R                  # General utility functions (e.g., log moments, checks)
     ├── groups                            # Groups structure helper
     ├── rgen01                            # Random number generator for generating 0-1 values
