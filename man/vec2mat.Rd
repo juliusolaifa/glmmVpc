@@ -7,13 +7,19 @@
 vec2mat(vec)
 }
 \arguments{
-\item{vec}{A numeric vector containing the elements to be placed in the lower triangular part of the matrix. The length of \code{vec} should be compatible with forming a symmetric matrix.}
+\item{vec}{A numeric vector containing the elements to be placed in the lower
+triangular part of the matrix. The length of \code{vec} should be compatible with
+forming a symmetric matrix.}
 }
 \value{
-A symmetric numeric matrix with dimensions determined by the length of \code{vec}.
+A symmetric numeric matrix with dimensions determined by the length
+of \code{vec}.
 }
 \description{
-This function converts a vector into a symmetric matrix by filling the lower triangular part of the matrix with the elements of the vector and mirroring it to the upper triangular part. The size of the matrix is automatically determined based on the length of the vector.
+This function converts a vector into a symmetric matrix by filling the lower
+triangular part of the matrix with the elements of the vector and mirroring
+it to the upper triangular part. The size of the matrix is automatically
+determined based on the length of the vector.
 }
 \examples{
 # Convert a vector to a symmetric 3x3 matrix

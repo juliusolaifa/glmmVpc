@@ -30,11 +30,6 @@ eta <- function(X, beta, Z, u) {
 }
 
 
-mvn <- function(n, Sigma) {
-  p <- dim(Sigma)[1]
-  MASS::mvrnorm(n=n, mu=rep(0,p), Sigma=Sigma)
-}
-
 #' Generate Group Factor Labels
 #'
 #' This function generates a factor vector with group labels, where each group
@@ -61,6 +56,22 @@ groups <- function(ns, name="group") {
   factor(rep(x=paste0(name, 1:length(ns)), times=ns))
 }
 
+
+cluster_assignment <- function(ns, name="CLUSTER") {
+  factor(rep(x=paste0(name, 1:length(ns)), times=ns))
+}
+
+as_dataframe <- function(dataMatrix) {
+  if(is.matrix(dataMatrix)) {
+    dataMatrix <- t(dataMatrix)
+  } else if(is.vector(dataMatrix)){
+    dataMatrix <- as.matrix(dataMatrix)
+  }
+  dataframe <- as.data.frame(dataMatrix)
+  dataframe$cluster <- rownames(dataMatrix)
+  rownames(dataframe) <- NULL
+  return(dataframe)
+}
 
 
 #' Generate Random Binary Vectors with Equal Probability
@@ -94,11 +105,18 @@ rgen01 <- function(ns) {
 
 #' Convert Vector to Symmetric Matrix
 #'
-#' This function converts a vector into a symmetric matrix by filling the lower triangular part of the matrix with the elements of the vector and mirroring it to the upper triangular part. The size of the matrix is automatically determined based on the length of the vector.
+#' This function converts a vector into a symmetric matrix by filling the lower
+#' triangular part of the matrix with the elements of the vector and mirroring
+#' it to the upper triangular part. The size of the matrix is automatically
+#' determined based on the length of the vector.
 #'
-#' @param vec A numeric vector containing the elements to be placed in the lower triangular part of the matrix. The length of `vec` should be compatible with forming a symmetric matrix.
+#' @param vec A numeric vector containing the elements to be placed in the lower
+#' triangular part of the matrix. The length of `vec` should be compatible with
+#' forming a symmetric matrix.
 #'
-#' @return A symmetric numeric matrix with dimensions determined by the length of `vec`.
+#' @return A symmetric numeric matrix with dimensions determined by the length
+#' of `vec`.
+#'
 #' @export
 #'
 #' @examples
@@ -127,6 +145,20 @@ mat2vec <- function(mat) {
   return(mat)
 }
 
+#' GLMMTMB Familiies
+#'
+#' This function returns the appropriate family function for `glmmTMB` based on the input string.
+#'
+#' @param family A string indicating the family to be used. Available options are:
+#'               "nb" (negative binomial), "tw" (Tweedie), "ga" (Gaussian).
+#'
+#' @return The corresponding family function for `glmmTMB`.
+#' @export
+#'
+#' @examples
+#' glmmTMBfamily("nb")
+#' glmmTMBfamily("tw")
+#' glmmTMBfamily("ga")
 glmmTMBfamily <- function(family){
     switch(family,
             nb=glmmTMB::nbinom2,
@@ -137,85 +169,54 @@ glmmTMBfamily <- function(family){
     )
 }
 
+
 vcov.fit <- function(mod) {
   vcov_ <- stats::vcov(mod, full=TRUE)
   rownames(vcov_) <- colnames(vcov_) <- attr(rownames(vcov_), "names")
   vcov_
 }
 
-logNormM <- function(mu, Sigma, k) {
-  return(exp(k*mu + k^2*Sigma/2))
-}
 
-#' Variance Stabilizing Transformation
+#' Compute the k-th Moment of a Log-Normal Distribution
 #'
-#' @param counts A matrix of integer count data.
-#' @param blind Logical, whether to ignore the experimental design in the transformation.
-#' @param num_cores Number of workers
+#' This function computes the k-th moment of a log-normal distribution given the mean `mu`,
+#' variance `Sigma` (or sigma^2), and a constant `k`.
 #'
-#' @return A matrix of transformed values.
+#' @param mu Numeric value representing the mean of the underlying normal distribution.
+#' @param Sigma Numeric value representing the variance (sigma^2) of the underlying normal distribution.
+#' @param k Numeric value representing the moment to compute.
+#'
+#' @return Returns the k-th moment of the log-normal distribution.
 #' @export
 #'
 #' @examples
-#' ns <- c(10, 20)
-#' X <- rgen01(ns)
-#' beta <- c(0.5, 2)
-#' Sigma <- matrix(c(1, 0.5, 0.5, 1), nrow=2)
-#' family <- "nb"
-#' cov_values <- c(0.5, 1.5)
-#' formula <- y ~ x + (1 | group)
-#' datafrmMat <- batchGLMMData(5, X, beta, Sigma, ns, family = "nb", theta = 1.5)
-#' ys <- datafrmMat[-1,]; X <- datafrmMat[1,]; group <- colnames(datafrmMat)
-#' vstransform(ys, num_cores=4)
-vstransform <- function(counts, blind = FALSE, num_cores=NULL) {
-  counts <- counts[!apply(counts, 1, function(row) any(row >= .Machine$integer.max)), ]
-  if (!is.matrix(counts) || any(is.na(counts))) {
-    stop("The 'counts' parameter must be a numeric matrix without missing values.")
-  }
-  if (!all(counts == floor(counts))) {
-    message("Rounding non-integer counts to nearest integers.")
-    counts <- round(counts)
-  }
-
-  if (is.null(colnames(counts))) {
-    stop("Error: 'counts' must have column names representing the sample groups.")
-  }
-  chk <- Sys.getenv("_R_CHECK_LIMIT_CORES_", "")
-  if (nzchar(chk) && chk == "TRUE") {
-    num_cores <- 2L
-  } else {
-    num_cores <- ifelse(!is.null(num_cores), num_cores,parallel::detectCores() - 1)
-  }
-
-  os <- Sys.info()["sysname"]
-  if (os == "Windows") {
-    param <- BiocParallel::SnowParam(workers = num_cores)
-  } else {
-    param <- BiocParallel::MulticoreParam(workers = num_cores)
-  }
-  if (is.null(colnames(counts))) {
-    stop("The 'counts' matrix must have column names indicating the sample groups.")
-  }
-
-  condition <- factor(colnames(counts))
-  dds <- DESeq2::DESeqDataSetFromMatrix(countData = counts,
-                                        colData = S4Vectors::DataFrame(condition),
-                                        design = ~ condition)
-  dds <- tryCatch({
-    DESeq2::estimateSizeFactors(dds)
-  }, error = function(e) {
-    if (grepl("cannot compute log geometric means", e$message)) {
-      message("Error in size factor estimation: Switching to 'poscounts' method")
-      DESeq2::estimateSizeFactors(dds, type = "poscounts")
-    } else {
-      stop(e)
-    }
-  })
-  dds <- DESeq2::DESeq(dds, parallel = TRUE, BPPARAM = param)
-  vst_data <- DESeq2::varianceStabilizingTransformation(dds, blind = blind)
-  vst_data_s3 <- SummarizedExperiment::assay(vst_data)
-  BiocParallel::bpstop(param)
-  return(vst_data_s3)
+#' logNormMoment(0, 1, 1) # First moment (mean) of a log-normal distribution
+#' logNormMoment(0.5, 2, 2) # Second moment of a log-normal distribution
+logNormMoment <- function(mu, Sigma, k) {
+  return(exp(k*mu + k^2*Sigma/2))
 }
+
+
+#' Compute moments of the log-normal distribution
+#'
+#' This function computes the moments (e.g., first, second, power-th moments)
+#' of a log-normal distribution
+#' based on the mean (`mu`) and variance (`sigma^2`) of the corresponding
+#' normal distribution.
+#'
+#' @param mu The mean (linear predictor) on the log scale.
+#' @param variance The variance (random effect variance) on the log scale.
+#' @param power The power for higher-order moments (e.g., for Tweedie models).
+#'
+#' @return A list containing the first moment (`Ex`), the second moment
+#' (`Ex2`), and, if applicable, the power-th moment (`Ex_p`).
+compute_lnmoments <- function(mu, variance, power = 1) {
+  Ex <- exp(mu + 0.5 * variance)
+  Ex2 <- exp(2 * mu + 2 * variance)
+  Ex_p <- if (power != 1) exp(power * mu + 0.5 * power^2 * variance) else Ex
+
+  return(list(Ex = Ex, Ex2 = Ex2, Ex_p = Ex_p))
+}
+
 
 
