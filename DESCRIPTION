@@ -2,8 +2,11 @@ Package: vpc
 Title: Variance Partitioning in Generalized Linear Mixed Models
 Version: 1.0.0
 Authors@R: 
+  c(
     person("Julius", "Olaifa", , "julius.olaifa@okstate.edu", role = c("aut", "cre"),
-           comment = c(ORCID = "0000-0002-3864-099X"))
+           comment = c(ORCID = "0000-0002-3864-099X")),
+    person("Pratyaydipta", "Rudra", role="ctb")
+    )
 Description: The Variance Partitioning in Generalized Linear Mixed Models (GLMMs) 
               package provides tools for estimating and interpreting the proportion 
               of variance explained by different random effects in GLMMs.
@@ -12,13 +15,13 @@ Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.2.3
 Imports: 
-    BiocParallel,
-    DESeq2,
+    Deriv,
     glmmTMB,
     MASS,
-    methods,
+    numDeriv,
     pbapply,
-    S4Vectors,
     stats,
-    SummarizedExperiment,
     tweedie
+Suggests: 
+    testthat (>= 3.0.0)
+Config/testthat/edition: 3
