@@ -10,6 +10,7 @@
 #' @return A matrix where each column represents a group, and each row
 #'          corresponds to an observation. The entries are 1 if the
 #'          observation belongs to the corresponding group and 0 otherwise.
+#'
 #' @export
 #'
 #' @examples
