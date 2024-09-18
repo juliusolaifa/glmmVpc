@@ -1,4 +1,4 @@
-Package: vpc
+Package: glmmVpc
 Title: Variance Partitioning in Generalized Linear Mixed Models
 Version: 1.0.0
 Authors@R: 

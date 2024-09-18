@@ -7,6 +7,6 @@
 # * https://testthat.r-lib.org/articles/special-files.html
 
 library(testthat)
-library(vpc)
+library(glmmVpc)
 
-test_check("vpc")
+test_check("glmmVpc")
