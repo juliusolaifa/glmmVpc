@@ -2,6 +2,7 @@
 
 export("%||%")
 export(batchGLMMData)
+export(batchGLMMDataUsingMatrix)
 export(batchGLMMFit)
 export(calculate_vpc_for_family)
 export(computeFixedEffects)

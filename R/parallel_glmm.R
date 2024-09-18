@@ -15,6 +15,8 @@
 #' @param num_cores The number of cores to use for parallel processing. If NULL, the function will use all
 #'                  available cores minus one (default is NULL).
 #'
+#' @export
+#'
 #' @return A matrix where rows represent the predictors from `X` followed by the generated feature data.
 #'         If parallel processing is used, the data is generated in parallel across multiple cores.
 batchGLMMDataUsingMatrix <- function(paramMat, ns, X=NULL,
