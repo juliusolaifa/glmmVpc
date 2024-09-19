@@ -117,6 +117,7 @@ singleGLMMData <- function(beta, ns, Sigma=NULL, X=NULL, family = "gaussian",
     rownames(data) <- "Feature"
   }
   if (!is.null(Sigma)) colnames(data) <- cluster_assignment(ns)
+  class(data) <- c("glmmDataMatrix", "matrix", "array")
   return(data)
 }
 
@@ -193,6 +194,9 @@ batchGLMMData <- function(beta, ns, Sigma=NULL, num=1, X=NULL,
     fullData <- dataMatrix
   }
 
+  class(fullData) <- c("batchglmmDataMatrix", "matrix", "array")
+  attr(fullData, "num_feat") <- num
+  attr(fullData, "num_covariate") <- ifelse(is.null(X), 0, nrow(Xt))
   return(fullData)
 }
 
