@@ -63,7 +63,7 @@ extractParametersByFamily <- function(family, modObj) {
 singleGLMMFit <- function(formula, data, family) {
 
   if(!is.data.frame(data)) {
-    data <- as_dataframe(data)
+    data <- as.data.frame(data)
   }
 
   if (missing(formula) || missing(data) || missing(family)) {
@@ -86,7 +86,7 @@ singleGLMMFit <- function(formula, data, family) {
   }
   params <- extractParametersByFamily(family, modObj)
   sample_size <- nrow(data)
-  var_cov_matrix <- vcov.fit(modObj)
+  var_cov_matrix <- stats::vcov(modObj, full=TRUE)
 
   params$sample_size <- sample_size
   params$var_cov_matrix <- var_cov_matrix
@@ -130,63 +130,56 @@ logLik.glmmfit <- function(object, ...) {
 }
 
 
-
 #' Batch Generalized Linear Mixed Model (GLMM) Fit for Multiple Features
 #'
 #' This function fits a GLMM for each feature in the provided data matrix.
 #' The formula for each feature is dynamically generated.
 #'
-#' @param formula A formula specifying the model to fit, such as Feature ~ 1 + (1|cluster).
-#' @param dataMat A matrix containing both covariates and feature data. Covariates should match `cov.pattern`.
-#' @param family A description of the error distribution and link function to be used in the model (e.g., "gaussian", "poisson").
-#' @param cov.pattern A regular expression pattern to identify covariates in the `dataMat`. Default is "^X".
-#' @param num_cores Number of computer cores to use in training
+#' @param formula A formula specifying the model to fit, such as
+#' Feature ~ 1 + (1|cluster).
+#' @param dataMat A batchglmmDataMatrix containing both covariates and
+#' feature data. Covariates should match `cov.pattern`.
+#' @param family A description of the error distribution and link function to
+#' be used in the model (e.g., "gaussian", "poisson").
+#' @param cov.pattern A regular expression pattern to identify covariates in
+#' the `dataMat`. Default is "^X".
+#' @param feat.pattern A regular expression pattern to identify features in
+#' the dataMat
+#' @param num_cores Number of computer cores to use in training.
 #'
 #' @return A list of model fits, one for each feature.
 #' @export
 batchGLMMFit <- function(formula, dataMat, family, cov.pattern = "^X", num_cores = 1) {
 
+  max_cores <- parallel::detectCores() - 1
 
-    max_cores <- parallel::detectCores() -1
+  if (num_cores < 1) {
+    warning("num_cores must be at least 1. Setting num_cores to 1 (no parallelism).")
+    num_cores <- 1
+  } else if (num_cores > max_cores) {
+    warning(paste("num_cores exceeds the available cores. Using", max_cores, "cores instead."))
+    num_cores <- max_cores
+  }
 
-    if (num_cores < 1) {
-      warning("num_cores must be at least 1. Setting num_cores to 1 (no parallelism).")
-      num_cores <- 1
-    } else if (num_cores > max_cores) {
-      warning(paste("num_cores exceeds the available cores. Using", max_cores, "cores instead."))
-      num_cores <- max_cores
-    }
+  num_feat <- attr(dataMat, "num_feat")
+  fits <- pbapply::pblapply(1:num_feat, function(i) {
+    data <- as.data.frame(dataMat[i])
+    formula_string <- paste(paste0(deparse(formula[[2]]),i), "~", deparse(formula[[3]]))
+    dynamic_formula <- stats::as.formula(formula_string)
+    fit <- tryCatch({
+      singleGLMMFit(formula = dynamic_formula, data = data, family = family)
+    }, error = function(e) {
+      warning(paste("Error fitting model for", feature_name, ":", e$message))
+      return(NULL)
+    })
 
-    #Get the covariates
-    covariates <- dataMat[grepl(cov.pattern, rownames(dataMat)), , drop = FALSE]
-    featureMat <- dataMat[!grepl(cov.pattern, rownames(dataMat)), , drop = FALSE]
+    return(fit)
+  }, cl = num_cores)
 
-    fits <- pbapply::pblapply(1:nrow(featureMat), function(i)  {
-        # Extrcat each feature and convert to dataframe
-        feature_mat <- featureMat[i, , drop=FALSE]
-        datamat <- rbind(covariates, feature_mat)
-        data <- as_dataframe(datamat)
-
-        # Construct formula dynamically for Feature1, Feature2 ...
-        # Feature ~ 1 + (1|cluster) => Feature1 ~ 1 + (1|cluster)
-        feature_name <- rownames(feature_mat)
-        formula_string <- paste(feature_name, "~", deparse(formula[[3]]))
-        dynamic_formula <- stats::as.formula(formula_string)
-
-        # fit a Single GLMMFit
-        fit <- tryCatch({
-          singleGLMMFit(formula = dynamic_formula, data = data, family = family)
-        }, error = function(e) {
-          warning(paste("Error fitting model for", feature_name, ":", e$message))
-          return(NULL)
-        })
-
-        return(fit)
-    }, cl = num_cores)
-
-    fits <- Filter(Negate(is.null), fits)
-    return(fits)
+  fits <- Filter(Negate(is.null), fits)
+  return(fits)
 }
+
 
 #' Convert family name to glmmTMB family object
 #'
