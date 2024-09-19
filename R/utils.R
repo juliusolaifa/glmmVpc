@@ -1,35 +1,3 @@
-#' Linear Predictor (Eta)
-#'
-#' This function calculates the linear predictor (often denoted as  \eqn{\eta}) in
-#' a generalized linear model (GLM) or linear mixed model (LMM). The linear
-#' predictor is computed as a combination of fixed effects  \eqn{\beta} and
-#' random effects  \eqn{Z}.
-#'
-#' @param X A numeric matrix of fixed effect covariates. Each row represents an
-#' observation, and each column represents a covariate.
-#' @param beta A numeric vector of fixed effect coefficients. The length of
-#' `beta` should match the number of columns in `X`.
-#' @param Z A numeric matrix of random effect covariates. Each row represents
-#' an observation, and each column represents a random effect covariate.
-#' @param u A numeric vector of random effect coefficients. The length of `u`
-#' should match the number of columns in `Z`.
-#'
-#' @return A numeric vector representing the linear predictor, with each element
-#' corresponding to an observation.
-#'
-#' @export
-#'
-#' @examples
-#' X <- matrix(c(1, 1, 1, 0, 1, 2), nrow=3, ncol=2)
-#' beta <- c(0.5, 2)
-#' Z <- matrix(c(1, 0, 1, 1, 1, 0), nrow=3, ncol=2)
-#' u <- c(1.5, -0.5)
-#' eta(X, beta, Z, u)
-eta <- function(X, beta, Z, u) {
-  X %*% beta + Z %*% u
-}
-
-
 #' Generate Group Factor Labels
 #'
 #' This function generates a factor vector with group labels, where each group
@@ -48,30 +16,50 @@ eta <- function(X, beta, Z, u) {
 #'
 #' @examples
 #' # Generate a factor vector with group labels "group1", "group2", "group3"
-#' groups(c(3, 2, 4))
+#' cluster_assignment(c(3, 2, 4))
 #'
 #' # Generate a factor vector with custom group labels "cluster1", "cluster2"
-#' groups(c(5, 5), name = "cluster")
-groups <- function(ns, name="group") {
-  factor(rep(x=paste0(name, 1:length(ns)), times=ns))
-}
-
-
+#' cluster_assignment(c(5, 5), name = "cluster")
 cluster_assignment <- function(ns, name="CLUSTER") {
   factor(rep(x=paste0(name, 1:length(ns)), times=ns))
 }
 
-as_dataframe <- function(dataMatrix) {
-  if(is.matrix(dataMatrix)) {
-    dataMatrix <- t(dataMatrix)
-  } else if(is.vector(dataMatrix)){
-    dataMatrix <- as.matrix(dataMatrix)
+#' @export
+#' @method as.data.frame glmmDataMatrix
+as.data.frame.glmmDataMatrix <- function(x,...) {
+  cluster <- colnames(x)
+  colnames(x) <- NULL
+  x <- unclass(x)
+  if (is.matrix(x)) {
+    dataMatrix <- t(x)
+  } else if (is.vector(x)) {
+    dataMatrix <- as.matrix(x)
+  } else {
+    stop("Unsupported object type for glmmDataMatrix.")
   }
-  dataframe <- as.data.frame(dataMatrix)
-  dataframe$cluster <- rownames(dataMatrix)
-  rownames(dataframe) <- NULL
-  return(dataframe)
+  dataMatrix <- data.frame(dataMatrix)
+  dataMatrix$cluster <- cluster
+  return(dataMatrix)
 }
+
+#' @export
+#' @method [ batchglmmDataMatrix
+`[.batchglmmDataMatrix` <- function(x, i) {
+  if (!inherits(x, "batchglmmDataMatrix")) {
+    stop("Object is not of class 'batchglmmDataMatrix'")
+  }
+  x <- unclass(x)
+  x_rows <- x[grepl("^X", rownames(x)), , drop = FALSE]
+  if (i > nrow(x) || i < 1) {
+    stop("Index out of bounds: no such feature row.")
+  }
+
+  feature_row <- x[i+nrow(x_rows), , drop = FALSE]
+  result <- rbind(x_rows, feature_row)
+  class(result) <- c("glmmDataMatrix", "matrix", "array")
+  return(result)
+}
+
 
 
 #' Generate Random Binary Vectors with Equal Probability
@@ -145,56 +133,6 @@ mat2vec <- function(mat) {
   return(mat)
 }
 
-#' GLMMTMB Familiies
-#'
-#' This function returns the appropriate family function for `glmmTMB` based on the input string.
-#'
-#' @param family A string indicating the family to be used. Available options are:
-#'               "nb" (negative binomial), "tw" (Tweedie), "ga" (Gaussian).
-#'
-#' @return The corresponding family function for `glmmTMB`.
-#' @export
-#'
-#' @examples
-#' glmmTMBfamily("nb")
-#' glmmTMBfamily("tw")
-#' glmmTMBfamily("ga")
-glmmTMBfamily <- function(family){
-    switch(family,
-            nb=glmmTMB::nbinom2,
-            tw=glmmTMB::tweedie,
-            ga=stats::gaussian,
-            stop(family, "is not a valid family.
-                     Available options are: nb, tw, ga.")
-    )
-}
-
-
-vcov.fit <- function(mod) {
-  vcov_ <- stats::vcov(mod, full=TRUE)
-  rownames(vcov_) <- colnames(vcov_) <- attr(rownames(vcov_), "names")
-  vcov_
-}
-
-
-#' Compute the k-th Moment of a Log-Normal Distribution
-#'
-#' This function computes the k-th moment of a log-normal distribution given the mean `mu`,
-#' variance `Sigma` (or sigma^2), and a constant `k`.
-#'
-#' @param mu Numeric value representing the mean of the underlying normal distribution.
-#' @param Sigma Numeric value representing the variance (sigma^2) of the underlying normal distribution.
-#' @param k Numeric value representing the moment to compute.
-#'
-#' @return Returns the k-th moment of the log-normal distribution.
-#' @export
-#'
-#' @examples
-#' logNormMoment(0, 1, 1) # First moment (mean) of a log-normal distribution
-#' logNormMoment(0.5, 2, 2) # Second moment of a log-normal distribution
-logNormMoment <- function(mu, Sigma, k) {
-  return(exp(k*mu + k^2*Sigma/2))
-}
 
 
 #' Compute moments of the log-normal distribution
@@ -218,5 +156,81 @@ compute_lnmoments <- function(mu, variance, power = 1) {
   return(list(Ex = Ex, Ex2 = Ex2, Ex_p = Ex_p))
 }
 
+#' Extract Predictors (X)
+#'
+#' This function extracts the predictor variables from a glmmDataMatrix or batchglmmDataMatrix object.
+#' If no predictors are found, the function returns NULL.
+#'
+#' @param object A glmmDataMatrix or batchglmmDataMatrix object.
+#'
+#' @return A matrix of predictor variables or NULL if no predictors are present.
+#' @export
+get_x <- function(object) {
+  UseMethod("get_x")
+}
 
+#' @export
+get_x.glmmDataMatrix <- function(object) {
+  object <- unclass(object)
+  predictors <- grep("^X", rownames(object), value = TRUE)
 
+  if (length(predictors) == 0) {
+    return(NULL)
+  }
+  x <- object[predictors, , drop = FALSE]
+  if (nrow(x) == 1) {
+    x <- as.vector(x)
+  } else {
+    x <- t(x)
+    rownames(x) <- NULL
+  }
+  return(x)
+}
+
+#' @export
+get_x.batchglmmDataMatrix <- get_x.glmmDataMatrix  # Assuming similar structure
+
+#' Extract Response (y)
+#'
+#' This function extracts the response variable from a glmmDataMatrix or batchglmmDataMatrix object.
+#'
+#' @param object A glmmDataMatrix or batchglmmDataMatrix object.
+#'
+#' @return A vector of response variable values.
+#' @export
+get_y <- function(object) {
+  UseMethod("get_y")
+}
+
+#' @export
+get_y.glmmDataMatrix <- function(object) {
+  object <- unclass(object)
+  features <- grep("^Feature", rownames(object), value = TRUE)
+  y <- object[features, , drop = FALSE]
+  return(y)
+}
+
+#' @export
+get_y.batchglmmDataMatrix <- get_y.glmmDataMatrix  # Assuming similar structure
+
+#' Extract Cluster Information
+#'
+#' This function extracts the cluster information from the column names of a glmmDataMatrix or batchglmmDataMatrix object.
+#'
+#' @param object A glmmDataMatrix or batchglmmDataMatrix object.
+#'
+#' @return A vector of cluster names.
+#' @export
+get_cluster <- function(object) {
+  UseMethod("get_cluster")
+}
+
+#' @export
+get_cluster.glmmDataMatrix <- function(object) {
+  #object <- unclass(object)
+  clusters <- as.vector(colnames(object))
+  return(clusters)
+}
+
+#' @export
+get_cluster.batchglmmDataMatrix <- get_cluster.glmmDataMatrix  # Assuming similar structure
