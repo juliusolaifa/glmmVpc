@@ -29,6 +29,7 @@ cov_values <- c(0, 1)
 formula <- y ~ x + (1 | group)
 datafrmMat <- batchGLMMData(num=5, X, beta=beta, Sigma=Sigma, ns=ns,
 family = "negative_binomial", theta = 1.5)
-ys <- datafrmMat[-1,]; X <- datafrmMat[1,]; group <- colnames(datafrmMat)
+ys <- get_y(datafrmMat); X <- get_x(datafrmMat); group <- get_cluster(datafrmMat)
 vstransform(ys, num_cores=4)
+
 }
