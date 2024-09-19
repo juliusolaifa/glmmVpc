@@ -262,9 +262,6 @@ makeDataMatrix <- function(X, ys, cluster) {
   if (is.null(ys) || is.null(cluster)) {
     stop("Response values (ys) and cluster names must not be NULL.")
   }
-  if (!is.matrix(ys)) {
-    ys <- as.matrix(ys)
-  }
   if (!is.null(X) && is.matrix(X)) {
     if (ncol(X) == ncol(ys)) {
       X <- X
