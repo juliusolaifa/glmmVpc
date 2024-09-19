@@ -280,7 +280,7 @@ makeDataMatrix <- function(X, ys, cluster) {
     attr(fullData, "num_covariate") <- 0
   } else if(is.vector(X)) {
     attr(fullData, "num_covariate") <- 1
-  }e;se{
+  }else{
     attr(fullData, "num_covariate") <- nrow(X)
   }
   return(result)
