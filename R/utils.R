@@ -277,11 +277,11 @@ makeDataMatrix <- function(X, ys, cluster) {
   class(result) <- c("batchglmmDataMatrix", "matrix", "array")
   attr(result, "num_feat") <- nrow(ys)
   if(is.null(X)) {
-    attr(fullData, "num_covariate") <- 0
+    attr(result, "num_covariate") <- 0
   } else if(is.vector(X)) {
-    attr(fullData, "num_covariate") <- 1
+    attr(result, "num_covariate") <- 1
   }else{
-    attr(fullData, "num_covariate") <- nrow(X)
+    attr(result, "num_covariate") <- nrow(X)
   }
   return(result)
 }
