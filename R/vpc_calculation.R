@@ -67,6 +67,7 @@ calculate_vpc_for_family <- function(family, args, x) {
                         Vx / (Vx + phi * moments$Ex_p)
                       },
                       "gaussian" = {
+                        phi <- args$phi
                         sig / (sig + phi^2)
                       },
                       "compoisson" = {
