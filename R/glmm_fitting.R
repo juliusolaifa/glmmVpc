@@ -159,6 +159,7 @@ batchGLMMFit <- function(formula, dataMat, family, cov.pattern = "^X", num_cores
     num_cores <- max_cores
   }
 
+  print(paste("Fitting GLMM for ", family))
   num_feat <- attr(dataMat, "num_feat")
   fits <- pbapply::pblapply(1:num_feat, function(i) {
     data <- as.data.frame(dataMat[i])

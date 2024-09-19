@@ -159,7 +159,6 @@ batchGLMMData <- function(beta, ns, Sigma=NULL, num=1, X=NULL,
     warning("num_feat must be positive. Returning NULL.")
     return(NULL)
   }
-                #pbapply::pblapply
   dataMatrix <- lapply(1:num, function(x) {
     single_data <- singleGLMMData(beta=beta, ns=ns,Sigma=Sigma, X=X, family=family, link=link, ...)
     if (!is.null(single_data)) {

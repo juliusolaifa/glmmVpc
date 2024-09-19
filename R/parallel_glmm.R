@@ -25,11 +25,6 @@ batchGLMMDataUsingMatrix <- function(paramMat, ns, X=NULL,
                                   iter = 1, parallel = TRUE,
                                   num_cores = NULL) {
 
-
-  # Validate family parameters once before starting the batch generation
-  # args <- list(...)
-  # family_args <- validate_family_params(family, args)
-
   if (parallel && is.null(num_cores)) {
     num_cores <- parallel::detectCores() - 1  # Reserve one core for system tasks
   }
@@ -62,6 +57,7 @@ batchGLMMDataUsingMatrix <- function(paramMat, ns, X=NULL,
 
   }
 
+  print(paste("Generating Data from ", family))
   if (parallel) {
     dataMatrix <- pbapply::pblapply(1:nrow(paramMat), process_row, cl = num_cores)
   } else {

@@ -233,4 +233,53 @@ get_cluster.glmmDataMatrix <- function(object) {
 }
 
 #' @export
-get_cluster.batchglmmDataMatrix <- get_cluster.glmmDataMatrix  # Assuming similar structure
+get_cluster.batchglmmDataMatrix <- get_cluster.glmmDataMatrix
+
+
+#' Create a Data Matrix from Covariates, Response Values, and Clusters
+#'
+#' This function combines a matrix of covariates (X), a matrix of response
+#' values (ys),
+#' and cluster identifiers into a single data matrix. It ensures that dimensions
+#'  are compatible
+#' and assigns the appropriate column names.
+#'
+#' @param X A matrix of covariates. If the number of columns does not match
+#' the number of
+#'           response values, it will be transposed if the number of rows matches.
+#' @param ys A matrix or vector of response values. If a vector, it will be
+#' converted to a matrix.
+#' @param cluster A character vector containing cluster names to be assigned
+#' as column names
+#'                for the resulting data matrix.
+#'
+#' @return A matrix combining covariates, response values, and cluster identifiers.
+#'         The resulting matrix has the response values as the last rows and
+#'         columns named by the clusters.
+#'
+#' @export
+makeDataMatrix <- function(X, ys, cluster) {
+  if (is.null(ys) || is.null(cluster)) {
+    stop("Response values (ys) and cluster names must not be NULL.")
+  }
+  if (!is.matrix(ys)) {
+    ys <- as.matrix(ys)
+  }
+  if (!is.null(X) && is.matrix(X)) {
+    if (ncol(X) == ncol(ys)) {
+      X <- X
+    } else if (nrow(X) == ncol(ys)) {
+      X <- t(X)
+    } else {
+      stop("Dimensions of X and ys do not match.")
+    }
+  }
+
+  result <- rbind(X, ys)
+  colnames(result) <- cluster
+  class(result) <- c("batchglmmDataMatrix", "matrix", "array")
+  attr(result, "num_feat") <- nrow(ys)
+  attr(fullData, "num_covariate") <- ifelse(is.null(X), 0, nrow(X))
+  return(result)
+}
+
