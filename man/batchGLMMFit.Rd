@@ -7,15 +7,19 @@
 batchGLMMFit(formula, dataMat, family, cov.pattern = "^X", num_cores = 1)
 }
 \arguments{
-\item{formula}{A formula specifying the model to fit, such as Feature ~ 1 + (1|cluster).}
+\item{formula}{A formula specifying the model to fit, such as
+Feature ~ 1 + (1|cluster).}
 
-\item{dataMat}{A matrix containing both covariates and feature data. Covariates should match \code{cov.pattern}.}
+\item{dataMat}{A batchglmmDataMatrix containing both covariates and
+feature data. Covariates should match \code{cov.pattern}.}
 
-\item{family}{A description of the error distribution and link function to be used in the model (e.g., "gaussian", "poisson").}
+\item{family}{A description of the error distribution and link function to
+be used in the model (e.g., "gaussian", "poisson").}
 
-\item{cov.pattern}{A regular expression pattern to identify covariates in the \code{dataMat}. Default is "^X".}
+\item{cov.pattern}{A regular expression pattern to identify covariates in
+the \code{dataMat}. Default is "^X".}
 
-\item{num_cores}{Number of computer cores to use in training}
+\item{num_cores}{Number of computer cores to use in training.}
 }
 \value{
 A list of model fits, one for each feature.

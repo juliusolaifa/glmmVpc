@@ -143,8 +143,6 @@ logLik.glmmfit <- function(object, ...) {
 #' be used in the model (e.g., "gaussian", "poisson").
 #' @param cov.pattern A regular expression pattern to identify covariates in
 #' the `dataMat`. Default is "^X".
-#' @param feat.pattern A regular expression pattern to identify features in
-#' the dataMat
 #' @param num_cores Number of computer cores to use in training.
 #'
 #' @return A list of model fits, one for each feature.
@@ -169,7 +167,7 @@ batchGLMMFit <- function(formula, dataMat, family, cov.pattern = "^X", num_cores
     fit <- tryCatch({
       singleGLMMFit(formula = dynamic_formula, data = data, family = family)
     }, error = function(e) {
-      warning(paste("Error fitting model for", feature_name, ":", e$message))
+      warning(paste("Error fitting model for Feature",i, ":", e$message))
       return(NULL)
     })
 

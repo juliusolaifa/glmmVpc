@@ -8,3 +8,4 @@
 .Rcheck/
 
 vignettes/
+^data-raw$

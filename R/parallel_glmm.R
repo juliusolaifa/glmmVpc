@@ -53,12 +53,7 @@ batchGLMMDataUsingMatrix <- function(paramMat, ns, X=NULL,
         family = family,
         link = link),
         family_args ))
-      # Remove X rows for each
-      if (!is.null(X)) {
-        rows_to_remove <- if (is.vector(X)) 1 else nrow(X)
-          gen_df <- gen_df[-(1:rows_to_remove), ]
-      }
-
+      gen_df <- get_y(gen_df)
       return(gen_df)
     }, error = function(e) {
       warning("Error in generating data for row ", i, ": ", conditionMessage(e))
@@ -78,11 +73,24 @@ batchGLMMDataUsingMatrix <- function(paramMat, ns, X=NULL,
   #Ensure proper row and column names
   if (!is.null(dataMatrix) && nrow(dataMatrix) > 0) {
     rownames(dataMatrix) <- paste0("Feature", 1:nrow(dataMatrix))
-    colnames(dataMatrix) <- groups(ns)
+    colnames(dataMatrix) <- cluster_assignment(ns)
   }
 
-  # Return the combined result with fixed effects (X) and generated features
-  return(rbind(X, dataMatrix))
+  if (!is.null(X)) {
+    Xt <- t(X)
+    if (nrow(Xt) == 1) {
+      rownames(Xt) <- "X"
+    } else {
+      rownames(Xt) <- paste0("X", 1:nrow(Xt))
+    }
+  }
+
+  fullData <- rbind(Xt, dataMatrix)
+  class(fullData) <- c("batchglmmDataMatrix", "matrix", "array")
+  attr(fullData, "num_feat") <- nrow(dataMatrix)
+  attr(fullData, "num_covariate") <- ifelse(is.null(X), 0, nrow(Xt))
+
+  return(fullData)
 }
 
 
