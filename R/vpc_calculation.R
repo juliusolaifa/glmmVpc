@@ -137,3 +137,55 @@ vpc <- function(model_fit, x=NULL, ...) {
 
 }
 
+#' Calculate Variance Partition Coefficient (VPC) for Different Families
+#'
+#' This function takes a family type, a parameter matrix, and a covariate
+#' (or covariates),
+#' and calculates the VPC for each row of the parameter matrix. The function
+#' dynamically
+#' handles family-specific parameters such as \code{phi} and \code{power} for Tweedie
+#' and Negative Binomial families.
+#'
+#' @param family A character string specifying the family for the model.
+#' Can be one of
+#'   \code{"negative_binomial"} or \code{"tweedie"}.
+#' @param paramMat A matrix or data frame containing the parameters for each
+#' row. Columns
+#'   for \code{b0}, \code{b1}, \code{sig11}, \code{sig12}, \code{sig22},
+#'   and family-specific
+#'   parameters (such as \code{theta} for Negative Binomial or \code{phi},
+#'   \code{power} for Tweedie)
+#'   are required.
+#' @param x Covariates or other necessary inputs for calculating the VPC.
+#'
+#' @return A list where each element corresponds to the VPC results for each row
+#' of the parameter matrix.
+#' @export
+vpc_from_paramMat <- function(family, paramMat, x) {
+  vpc_results <- vector("list", nrow(paramMat))
+  beta_cols <- grep("^b", colnames(paramMat))
+  sigma_cols <- grep("^sig", colnames(paramMat))
+
+  for (i in seq_len(nrow(paramMat))) {
+    row <- as.list(paramMat[i, ])
+    beta <- unlist(row[beta_cols])
+    sigma_vec <- unlist(row[sigma_cols])
+    Sigma <- vec2mat(sigma_vec)
+
+    args <- list(
+      beta = beta,
+      Sigma = Sigma
+    )
+    args <- switch(
+      family,
+      "negative_binomial" = c(args, list(phi = row$theta)),
+      "tweedie" = c(args, list(phi = row$phi, power = row$power)),
+      args
+    )
+
+    vpc_results[[i]] <- calculate_vpc_for_family(family, args, x)
+  }
+  return(vpc_results)
+}
+
+
