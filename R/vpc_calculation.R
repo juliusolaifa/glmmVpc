@@ -67,6 +67,11 @@ calculate_vpc_for_family <- function(family, args, x) {
                         Vx / (Vx + phi * moments$Ex_p)
                       },
                       "gaussian" = {
+                        if(!is.null(x)) {
+                          z <- c(1,x)
+                          sig <- z %*% Sigma %*% z
+                        }
+                        sig <- Sigma
                         sigma_e <- args$sigma_e
                         sig / (sig + sigma_e^2)
                       },
