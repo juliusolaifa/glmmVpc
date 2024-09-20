@@ -6,7 +6,11 @@ b1 <- c(5, 7)
 sig11 <- 2
 sig12 <- 1
 sig22 <- 2
-theta <- seq(0.01, 0.4, 0.02)
+theta <- c(0.02, 0.09, 0.18,
+           0.39, 0.64, 0.95,
+           1.33, 1.81, 2.44,
+           3.30, 4.61, 5.59,
+           6.72)
 
 # Create a parameter matrix
 paramNBmat <- expand.grid(b0 = b0, b1 = b1,
