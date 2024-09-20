@@ -69,9 +69,10 @@ calculate_vpc_for_family <- function(family, args, x) {
                       "gaussian" = {
                         if(!is.null(x)) {
                           z <- c(1,x)
-                          sig <- z %*% Sigma %*% z
+                          sig <- as.numeric(z %*% Sigma %*% z)
+                        } else{
+                          sig <- as.numeric(Sigma)
                         }
-                        sig <- Sigma
                         sigma_e <- args$sigma_e
                         sig / (sig + sigma_e^2)
                       },
