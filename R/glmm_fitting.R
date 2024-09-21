@@ -199,6 +199,21 @@ get_glmmTMBfamily <- function(family) {
 }
 
 
+#' Extract Model Coefficients from a glmmfit Object
+#'
+#' This function extracts coefficients from a glmmfit object,
+#' handling different model families (negative binomial, tweedie, gaussian).
+#'
+#' @param glmmfitObj An object of class glmmfit
+#'
+#' @return A named vector of coefficients. The exact components depend on the family:
+#'   \itemize{
+#'     \item For all families: Fixed effects coefficients (beta) and variance components (sigma_vec)
+#'     \item For negative_binomial: Additional dispersion parameter (theta)
+#'     \item For tweedie: Additional dispersion (phi) and power parameters
+#'     \item For gaussian: Additional residual standard deviation (sigma_e)
+#'   }
+#'
 #' @export
 #' @method coef glmmfit
 coef.glmmfit <- function(glmmfitObj) {
@@ -228,6 +243,22 @@ coef.glmmfit <- function(glmmfitObj) {
            )
 }
 
+
+#' Extract Model Coefficients from a Glmmfit Object
+#'
+#' This function extracts coefficients from a glmmfit object,
+#' handling different model families (negative binomial, tweedie, gaussian).
+#'
+#' @param GlmmfitsObj An object of class glmmfit
+#'
+#' @return A named vector of coefficients. The exact components depend on the family:
+#'   \itemize{
+#'     \item For all families: Fixed effects coefficients (beta) and variance components (sigma_vec)
+#'     \item For negative_binomial: Additional dispersion parameter (theta)
+#'     \item For tweedie: Additional dispersion (phi) and power parameters
+#'     \item For gaussian: Additional residual standard deviation (sigma_e)
+#'   }
+#'
 #' @export
 #' @method coef Glmmfits
 coef.Glmmfits <- function(GlmmfitsObj) {
