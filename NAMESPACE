@@ -2,6 +2,8 @@
 
 S3method("[",batchglmmDataMatrix)
 S3method(as.data.frame,glmmDataMatrix)
+S3method(coef,Glmmfits)
+S3method(coef,glmmfit)
 S3method(get_cluster,batchglmmDataMatrix)
 S3method(get_cluster,glmmDataMatrix)
 S3method(get_x,batchglmmDataMatrix)

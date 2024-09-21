@@ -176,6 +176,7 @@ batchGLMMFit <- function(formula, dataMat, family, cov.pattern = "^X", num_cores
   }, cl = num_cores)
 
   fits <- Filter(Negate(is.null), fits)
+  class(fits) <- "Glmmfits"
   return(fits)
 }
 
@@ -195,6 +196,45 @@ get_glmmTMBfamily <- function(family) {
          "tweedie" = glmmTMB::tweedie,
          stop("Unsupported family")
   )
+}
+
+
+#' @export
+#' @method coef glmmfit
+coef.glmmfit <- function(glmmfitObj) {
+    family <- glmmfitObj$family
+    beta <- glmmfitObj$beta
+    names(beta) <- paste0("b", 1:length(beta))
+    Sigma <- glmmfitObj$Sigma
+    sigma_vec <- mat2vec(Sigma)
+    switch(family,
+           "negative_binomial" = {
+              phi <- glmmfitObj$phi
+              names(phi) <- "theta"
+              c(beta,phi,sigma_vec)
+           },
+           "tweedie" = {
+             phi <- glmmfitObj$phi
+             power <- glmmfitObj$power
+             names(phi) <- "phi"
+             names(power) <- "power"
+             c(beta,phi,sigma_vec,power)
+           },
+           "gaussian" = {
+             sigma_e <- glmmfitObj$sigma_e
+             names(sigma_e) <- "sigma_e"
+             c(beta,sigma_e,sigma_vec)
+           }
+           )
+}
+
+#' @export
+#' @method coef Glmmfits
+coef.Glmmfits <- function(GlmmfitsObj) {
+  result <- sapply(GlmmfitsObj, function(x) {
+    return(stats::coef(x))
+  }, simplify = TRUE)
+  return(t(result))
 }
 
 
