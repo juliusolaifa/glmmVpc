@@ -169,6 +169,10 @@ get_x <- function(object) {
   UseMethod("get_x")
 }
 
+get_x.default <- function(object) {
+  stop("No method for class ", class(object))
+}
+
 #' @export
 get_x.glmmDataMatrix <- function(object) {
   object <- unclass(object)

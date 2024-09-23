@@ -85,11 +85,6 @@ singleGLMMFit <- function(formula, data, family) {
     return(NULL)
   }
   params <- extractParametersByFamily(family, modObj)
-  sample_size <- nrow(data)
-  var_cov_matrix <- stats::vcov(modObj, full=TRUE)
-
-  params$sample_size <- sample_size
-  params$var_cov_matrix <- var_cov_matrix
   params$modObj <- modObj
 
 
@@ -97,36 +92,27 @@ singleGLMMFit <- function(formula, data, family) {
   return(params)
 }
 
+#' @importFrom stats nobs
+#' @export
+#' @method nobs glmmfit
 nobs.glmmfit <- function(object, ...) {
-  if (!is.null(object$sample_size)) {
-    return(object$sample_size)
-  } else {
-    stop("Sample size (nobs) is not available in the glmmfit object.")
-  }
+    return(stats::nobs(object$modObj))
 }
 
+
+#' @export
 vcov.glmmfit <- function(object, ...) {
-  if (!is.null(object$var_cov_matrix)) {
-    return(object$var_cov_matrix)
-  } else {
-    stop("Variance-covariance matrix (vcov) is not available in the glmmfit object.")
-  }
+  return(stats::vcov(object$modObj))
 }
 
+#' @export
 model.frame.glmmfit <- function(object, ...) {
-  if (!is.null(object$modObj)) {
-    return(stats::model.frame(object$modObj, ...) && inherits(object$modObj, "glmmTMB"))
-  } else {
-    stop("Model object (modObj) is not available in the glmmfit object.")
-  }
+    return(stats::model.frame(object$modObj))
 }
 
+#' @export
 logLik.glmmfit <- function(object, ...) {
-  if (!is.null(object$modObj) && inherits(object$modObj, "glmmTMB")) {
-    return(stats::logLik(object$modObj, ...))
-  } else {
-    stop("Model object (modObj) is not available or not a valid glmmTMB object in the glmmfit object.")
-  }
+    return(stats::logLik(object$modObj))
 }
 
 
