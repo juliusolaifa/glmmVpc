@@ -35,6 +35,7 @@ vpc.test.glmmfit <- function(fitObj, null_formula, type=c("classical", "self",
 
 }
 
+vpc.test.vpcObj <- vpc.test.glmmfit
 
 #' @export
 #' @method vpc.test Glmmfits
@@ -53,6 +54,7 @@ vpc.test.Glmmfits <- function(fitObj, null_formula, type=c("classical", "self",
   return(results)
 }
 
+vpc.test.VpcObj <- vpc.test.Glmmfits
 
 #' Perform Variance Partition Coefficient (VPC) Test
 #'

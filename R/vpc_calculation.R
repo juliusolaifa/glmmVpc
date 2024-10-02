@@ -134,7 +134,9 @@ vpc <- function(model_fit, x=NULL, ...) {
 
   if (is.list(model_fit)) {
     if (all(sapply(model_fit, inherits, "glmmfit"))) {
-      return(lapply(model_fit, calculate_vpc_single))
+      result <- (lapply(model_fit, calculate_vpc_single))
+      class(result) <- "VpcObj"
+      return(result)
     }
   }
 
