@@ -119,7 +119,7 @@ vpc <- function(model_fit, x=NULL, ...) {
       # phi = single_fit$phi,
       # p = single_fit$p,
       # family = family,
-      ,x = x,
+      ,x = x
       # vcov = vcov_matrix,
       # n = n
       )
