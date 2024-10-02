@@ -109,18 +109,23 @@ vpc <- function(model_fit, x=NULL, ...) {
     family <- single_fit$family
     vpc_value <- calculate_vpc_for_family(family=family, args=single_fit, x=x)
 
-    vcov_matrix <- stats::vcov(single_fit)
-    n <- stats::nobs(single_fit)
+    #vcov_matrix <- stats::vcov(single_fit)
+    #n <- stats::nobs(single_fit)
 
-    structure(as.numeric(vpc_value),
-      beta = single_fit$beta,
-      Sigma = single_fit$Sigma,
-      phi = single_fit$phi,
-      p = single_fit$p,
-      family = family,
-      x = x,
-      vcov = vcov_matrix,
-      n = n)
+    result <- structure(as.numeric(vpc_value),
+              modObj = single_fit
+      # beta = single_fit$beta,
+      # Sigma = single_fit$Sigma,
+      # phi = single_fit$phi,
+      # p = single_fit$p,
+      # family = family,
+      ,x = x,
+      # vcov = vcov_matrix,
+      # n = n
+      )
+
+    class(result) <- c("vpcObj", class(result))
+    return(result)
   }
 
   if(inherits(model_fit, "glmmfit")) {

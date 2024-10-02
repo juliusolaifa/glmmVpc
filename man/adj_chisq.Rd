@@ -4,12 +4,16 @@
 \alias{adj_chisq}
 \title{Adjusted Chi-Square Test Statistic}
 \usage{
-adj_chisq(test_stat, config)
+adj_chisq(test_stat, config, ...)
 }
 \arguments{
 \item{test_stat}{Numeric value representing the chi-square test statistic.}
 
-\item{config}{A list containing the configuration parameters:
+\item{config}{A list containing the configuration parameters:}
+
+\item{...}{additional parameters, like \code{p} probability of being in the admissible
+region. See \url{https://www.jstor.org/stable/2289471}
+
 \describe{
 \item{q}{Parameter of interest on the boundary.}
 \item{r}{Parameter of interest not on the boundary.}

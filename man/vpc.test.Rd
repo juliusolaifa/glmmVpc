@@ -6,21 +6,31 @@
 \alias{vpc.test}
 \title{Perform Variance Partition Coefficient (VPC) Test}
 \usage{
-\method{vpc.test}{glmmfit}(fitObj, null_formula = NULL, test_type = c("LRT", "Score"))
+\method{vpc.test}{glmmfit}(
+  fitObj,
+  null_formula,
+  type = c("classical", "self", "zhang", "julius")
+)
 
-\method{vpc.test}{Glmmfits}(fitObj, null_formula = NULL, test_type = c("LRT", "Score"))
+\method{vpc.test}{Glmmfits}(
+  fitObj,
+  null_formula,
+  type = c("classical", "self", "zhang", "julius")
+)
 
-vpc.test(fitObj, null_formula = NULL, test_type = c("LRT", "Score"))
+vpc.test(
+  fitObj,
+  null_formula,
+  type = c("classical", "self", "zhang", "julius")
+)
 }
 \arguments{
 \item{fitObj}{The fitted model object of class \code{glmmfit} or a list of fitted model objects
 of class \code{glmmfits} for which the VPC is to be calculated.}
 
-\item{null_formula}{An optional formula to specify a null model for comparison.
-This can be useful for certain statistical tests (e.g., likelihood ratio tests).}
+\item{null_formula}{A formula to specify a null model for comparison.}
 
-\item{test_type}{A character vector indicating the type of test to perform. Options are
-"LRT" for Likelihood Ratio Test or "Score" for Score Test. The default is "LRT".}
+\item{type}{method to chalculate the chi_square distribution.}
 }
 \value{
 A numeric value or a list representing the calculated VPC for the given model,

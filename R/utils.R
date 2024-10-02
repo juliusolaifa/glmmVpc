@@ -290,3 +290,22 @@ makeDataMatrix <- function(X, ys, cluster) {
   return(result)
 }
 
+
+
+par_names <- function(modObj, family) {
+    beta <- modObj$beta
+    n <- nrow(modObj$Sigma)
+    beta_names <- paste0("b", 1:length(beta))
+    sigma_names <- unlist(sapply(1:n, function(k) {
+      paste0('sig',k,k:n)
+    }))
+
+    switch(family,
+           "negative_binomial"=c(beta_names, "theta", sigma_names),
+           "tweedie"= c(beta_names, "phi", sigma_names, "power"),
+           "gaussian"= c(beta_names, "sigma_e", sigma_names)
+           )
+}
+
+
+

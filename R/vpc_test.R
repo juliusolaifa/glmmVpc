@@ -1,61 +1,55 @@
 #' @export
 #' @method vpc.test glmmfit
 #' @rdname vpc.test
-vpc.test.glmmfit <- function(fitObj, null_formula = NULL,  test_type = c("LRT", "Score")) {
-  test_type <- match.arg(test_type)
+vpc.test.glmmfit <- function(fitObj, null_formula, type=c("classical", "self",
+                                                          "zhang", "julius")) {
 
+  type <- match.arg(type)
+
+  if(inherits(fitObj, "vpcObj")) {
+    fitObj <- fitObj$modObj
+  }
   data <- stats::model.frame(fitObj)
   family <- fitObj$family
 
-  if (is.null(null_formula)) {
-    null_formula <- stats::as.formula("response ~ 1")
-  }
+  fit0 <- singleGLMMFit(formula = null_formula, data = data, family = family)
 
-  null_fit <- singleGLMMFit(formula = null_formula, data = data, family = family)
+  logLik0 <- stats::logLik(fit0) #-fit0$modObj$fit$objective#
+  logLik1 <- stats::logLik(fitObj) #-fitObj$modObj$fit$objective#
 
-  if (test_type == "LRT") {
-    logLik_null <- stats::logLik(null_fit)
-    logLik_alt <- stats::logLik(fitObj)
+  test_stat <- 2 * (as.numeric(logLik1) - as.numeric(logLik0))
 
-    df_diff <- attr(logLik_alt, "df") - attr(logLik_null, "df")
-
+  if(type == "classical") {
+    df_diff <- attr(logLik1, "df") - attr(logLik0, "df")
     if (df_diff <= 0) {
       stop("Null model is not nested within the alternative model.")
     }
-
-    test_stat <- 2 * (as.numeric(logLik_alt) - as.numeric(logLik_null))
     p_value <- stats::pchisq(test_stat, df = df_diff, lower.tail = FALSE)
+  } else {
+    config <- obtain_config(fit0, fitObj)
+    p <- pr11(fitObj, type=type)
+    p_value <- adj_chisq(test_stat = test_stat, config=config, type=type, p=p)
+  }
 
-    return(list(method = "LRT", LR_stat = test_stat, df = df_diff, p_value = p_value))
+    return(list(LR_stat = test_stat, p_value = p_value))
 
-    } else if (test_type == "Score") {
-      score_vec <- 0#glmmTMB::gradients(null_fit$modObj) ## not implemented
-      var_cov_matrix <- stats::vcov(null_fit$modObj)
-
-      # (since Σ = I^(-1))
-      test_stat <- t(score_vec) %*% var_cov_matrix %*% score_vec
-      df <- length(score_vec)
-
-      p_value <- stats::pchisq(test_stat, df = df, lower.tail = FALSE)
-
-      return(list(method = "Score Test", Score_stat = test_stat, df = df, p_value = p_value))
-    }
 }
 
 
 #' @export
 #' @method vpc.test Glmmfits
 #' @rdname vpc.test
-vpc.test.Glmmfits <- function(fitObj, null_formula = NULL, test_type = c("LRT", "Score")) {
+vpc.test.Glmmfits <- function(fitObj, null_formula, type=c("classical", "self",
+                                                           "zhang","julius")) {
   n <- length(fitObj)
-  test_type <- match.arg(test_type)
-
+  type <- match.arg(type)
   results <- data.frame(t(pbapply::pbsapply(seq_along(fitObj), function(i) {
     formula_string <- paste(paste0(deparse(null_formula[[2]]),i), "~", deparse(null_formula[[3]]))
     dynamic_formula <- stats::as.formula(formula_string)
-    vpc.test(fitObj = fitObj[[i]], null_formula = dynamic_formula, test_type = test_type)
+    vpc.test(fitObj = fitObj[[i]], null_formula = dynamic_formula, type=type)
   })))
-
+  results$p_value <- as.numeric(results$p_value)
+  results$LR_stat <- as.numeric(results$LR_stat)
   return(results)
 }
 
@@ -67,15 +61,14 @@ vpc.test.Glmmfits <- function(fitObj, null_formula = NULL, test_type = c("LRT", 
 #'
 #' @param fitObj The fitted model object of class `glmmfit` or a list of fitted model objects
 #' of class `glmmfits` for which the VPC is to be calculated.
-#' @param null_formula An optional formula to specify a null model for comparison.
-#' This can be useful for certain statistical tests (e.g., likelihood ratio tests).
-#' @param test_type A character vector indicating the type of test to perform. Options are
-#' "LRT" for Likelihood Ratio Test or "Score" for Score Test. The default is "LRT".
+#' @param null_formula A formula to specify a null model for comparison.
+#' @param type method to chalculate the chi_square distribution.
 #'
 #' @return A numeric value or a list representing the calculated VPC for the given model,
 #' including additional details if applicable.
 #' @export
-vpc.test <- function(fitObj, null_formula = NULL, test_type = c("LRT", "Score")) {
+vpc.test <- function(fitObj, null_formula, type=c("classical", "self",
+                                                  "zhang","julius")) {
   UseMethod("vpc.test")
 }
 
@@ -88,6 +81,9 @@ vpc.test <- function(fitObj, null_formula = NULL, test_type = c("LRT", "Score"))
 #'
 #' @param test_stat Numeric value representing the chi-square test statistic.
 #' @param config A list containing the configuration parameters:
+#' @param ... additional parameters, like `p` probability of being in the admissible
+#' region. See \url{https://www.jstor.org/stable/2289471}
+#'
 #' \describe{
 #'   \item{q}{Parameter of interest on the boundary.}
 #'   \item{r}{Parameter of interest not on the boundary.}
@@ -117,7 +113,7 @@ vpc.test <- function(fitObj, null_formula = NULL, test_type = c("LRT", "Score"))
 #' \url{https://www.jstor.org/stable/2289471}
 #'
 #' @export
-adj_chisq <- function(test_stat, config) {
+adj_chisq <- function(test_stat, config, ...) {
 
   # Ensure config has all the necessary components
   if (is.null(config$q) || is.null(config$r) || is.null(config$s) || is.null(config$t)) {
@@ -127,19 +123,36 @@ adj_chisq <- function(test_stat, config) {
   calculate_p_value <- function(q, r, s, test_stat) {
     caseI <- q == 0 && s == 0
     caseII <- q == 1 && r == 0 && s == 0
-    caseIII <- q == 1 && s == 0
+    caseIII <- q == 1 && r == 1 && s == 0
+    caseIV <- q == 2
+
 
     if (caseI)   {
       return(stats::pchisq(test_stat, df = r, lower.tail = FALSE))
     } else if (caseII) {
-      return(0.5 * stats::pchisq(test_stat, df = 1, lower.tail = FALSE) +
-               0.5 * (test_stat == 0))
+      chi0 <- test_stat == 0
+      chi1 <- stats::pchisq(test_stat, df = 1, lower.tail = FALSE)
+      return(0.5 * chi0 + 0.5 * chi1)
     } else if (caseIII) {
-      df1 <- r - 1
-      df2 <- r
-      return(0.5 * stats::pchisq(test_stat, df = df1, lower.tail = FALSE) +
-               0.5 * stats::pchisq(test_stat, df = df2, lower.tail = FALSE))
-    } else {
+      chi1 <- stats::pchisq(test_stat, df = 1, lower.tail = FALSE)
+      chi2 <- stats::pchisq(test_stat, df = 2, lower.tail = FALSE)
+      return(0.5 * chi1 + 0.5 * chi2)
+    } else if(caseIV) {
+      args <- list(...)
+      p <- args$p
+      type <- args$type
+      chi0 <- test_stat == 0
+      chi1 <- stats::pchisq(test_stat, df = 1, lower.tail = FALSE)
+      chi2 <- stats::pchisq(test_stat, df = 2, lower.tail = FALSE)
+      chi3 <- stats::pchisq(test_stat, df = 3, lower.tail = FALSE)
+      pval.sz <- (0.5-p) * chi0 + 0.5 * chi1 + p*chi2
+      pval.j <- (0.5-p) * chi1 + 0.5 * chi2 + p*chi3
+      if (type == "self" || type == "zhang") {
+        return(pval.sz)
+      } else if(type == "julius"){
+        return(pval.j)
+      }
+    }else {
       stop("Invalid configuration for q, r, s.")
     }
   }
@@ -199,7 +212,8 @@ obtain_config <- function(null, alt){
   full_par.null <- nrow(stats::vcov(null$modObj, full=TRUE))
 
   bounded_par.alt <- nrow(alt$Sigma)
-  bounded_par.null <- nrow(null$Sigma)
+  bounded_par.null <- ifelse(inherits(null$Sigma, "matrix"), nrow(null$Sigma),
+                             length(null$Sigma))
 
   non_bounded.alt  <- full_par.alt - bounded_par.alt
   non_bounded.null <- full_par.null - bounded_par.null

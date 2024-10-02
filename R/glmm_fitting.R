@@ -100,9 +100,31 @@ nobs.glmmfit <- function(object, ...) {
 }
 
 
+#' Variance-Covariance Matrix for GLMM Fit
+#'
+#' This function computes the Asymptotic variance-covariance matrix of the
+#' regression parameters, family specific parameters and variance component of the random effect
+#'
+#' @param object A fitted GLMM object of class \code{glmmfit}.
+#' @param ... Additional arguments (currently not used).
+#'
+#' @return A matrix containing the variance-covariance matrix of the estimated parameters.
+#' The row and column names are set to the parameter names based on the family of the model.
+#'
+#' @examples
+#' \dontrun{
+#'   fit <- glmmfit(data, family = "binomial")
+#'   vcov_matrix <- vcov(fit)
+#' }
+#'
+#' @seealso \code{\link[stats]{vcov}} for the generic variance-covariance method.
+#'
 #' @export
 vcov.glmmfit <- function(object, ...) {
-  return(stats::vcov(object$modObj))
+  modObj <- object$modObj
+  vcovObj <- stats::vcov(modObj, full = TRUE)
+  rownames(vcovObj) <- colnames(vcovObj) <- par_names(object, object$family)
+  return(vcovObj)
 }
 
 #' @export
@@ -110,11 +132,35 @@ model.frame.glmmfit <- function(object, ...) {
     return(stats::model.frame(object$modObj))
 }
 
+#' Log-Likelihood for GLMM Fit
+#'
+#' This function extracts the log-likelihood of a fitted generalized linear mixed model (GLMM) object.
+#'
+#' @param object A fitted GLMM object of class \code{glmmfit}.
+#' @param ... Additional arguments (currently not used).
+#'
+#' @return The log-likelihood value of the fitted model.
+#'
+#' @examples
+#' \dontrun{
+#'   fit <- glmmfit(data, family = "binomial")
+#'   log_likelihood <- logLik(fit)
+#' }
+#'
+#' @seealso \code{\link[stats]{logLik}} for the generic log-likelihood method.
+#'
 #' @export
 logLik.glmmfit <- function(object, ...) {
     return(stats::logLik(object$modObj))
 }
 
+
+# beta <- c(3, 5)
+# Sigma <- matrix(c(2,1,1,2),2)
+# theta <- 0.39
+# data <- batchGLMMData(beta,c(10,10),Sigma,100,rgen01(c(10,10)),"negative_binomial","log", theta=theta)
+# fits <- glmmVpc::batchGLMMFit(Feature ~ X+(X|cluster), data, family="negative_binomial")
+# test <- vpc.test(fits, Feature~1+(1|cluster))
 
 #' Batch Generalized Linear Mixed Model (GLMM) Fit for Multiple Features
 #'
