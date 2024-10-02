@@ -116,7 +116,7 @@ singleGLMMData <- function(beta, ns, Sigma=NULL, X=NULL, family = "gaussian",
     data <- matrix(unlist(y), nrow=1)
     rownames(data) <- "Feature"
   }
-  if (!is.null(Sigma)) colnames(data) <- cluster_assignment(ns)
+  colnames(data) <- cluster_assignment(ns)
   class(data) <- c("glmmDataMatrix", "matrix", "array")
   return(data)
 }
