@@ -112,7 +112,7 @@ vpc <- function(model_fit, x=NULL, ...) {
     #vcov_matrix <- stats::vcov(single_fit)
     #n <- stats::nobs(single_fit)
 
-    result <- structure(as.numeric(vpc_value),
+    result <- list(vpc_value,
               modObj = single_fit
       # beta = single_fit$beta,
       # Sigma = single_fit$Sigma,
@@ -124,7 +124,7 @@ vpc <- function(model_fit, x=NULL, ...) {
       # n = n
       )
 
-    class(result) <- c("vpcObj", class(result))
+    class(result) <- "vpcObj"
     return(result)
   }
 

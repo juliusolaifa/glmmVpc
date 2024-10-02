@@ -5,7 +5,6 @@ vpc.test.glmmfit <- function(fitObj, null_formula, type=c("classical", "self",
                                                           "zhang", "julius")) {
 
   type <- match.arg(type)
-
   if(inherits(fitObj, "vpcObj")) {
     fitObj <- fitObj$modObj
   }
@@ -50,8 +49,13 @@ vpc.test.Glmmfits <- function(fitObj, null_formula, type=c("classical", "self",
   n <- length(fitObj)
   type <- match.arg(type)
   results <- data.frame(t(pbapply::pbsapply(seq_along(fitObj), function(i) {
-    formula_string <- paste(paste0(deparse(null_formula[[2]]),i), "~", deparse(null_formula[[3]]))
+
+    lhs <- paste0(deparse(null_formula[[2]]), i)
+    rhs <- deparse(null_formula[[3]])
+    formula_string <- paste(lhs, "~", rhs)
     dynamic_formula <- stats::as.formula(formula_string)
+    # formula_string <- paste(paste0(deparse(null_formula[[2]]),i), "~", deparse(null_formula[[3]]))
+    # dynamic_formula <- stats::as.formula(formula_string)
     vpc.test(fitObj = fitObj[[i]], null_formula = dynamic_formula, type=type)
   })))
   results$p_value <- as.numeric(results$p_value)
