@@ -82,7 +82,7 @@ singleGLMMFit <- function(formula, data, family) {
     return(NULL)
   })
 
-  if(modObj$fit$convergence == 1 || modObj$sdr$pdHess) {
+  if(modObj$fit$convergence == 1 || modObj$sdr$pdHess == F) {
     print("Re-fitting")
     modObj <- stats::update(modObj, control=glmmTMB::glmmTMBControl(
                                                   optimizer=stats::optim,
