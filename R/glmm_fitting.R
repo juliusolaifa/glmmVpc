@@ -81,6 +81,14 @@ singleGLMMFit <- function(formula, data, family) {
     message("Error fitting model: ", e$message)
     return(NULL)
   })
+
+  if(modObj$fit$convergence == 1 || modObj$sdr$pdHess) {
+    print("Re-fitting")
+    modObj <- stats::update(modObj, control=glmmTMB::glmmTMBControl(
+                                                  optimizer=stats::optim,
+                                                  optArgs=list(method="BFGS")))
+  }
+
   if (is.null(modObj)) {
     return(NULL)
   }
