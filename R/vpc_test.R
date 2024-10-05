@@ -32,8 +32,9 @@ vpc.test.glmmfit <- function(fitObj, null_formula, type=c("classical", "self",
       p_values <- lapply(types, function(t) adj_chisq(test_stat = test_stat,
                                                       config = config, type = t,
                                                       p = p))
-      return(list(LR_stat = test_stat, p_value.s = p_values[[1]],
-                  p_value.z = p_values[[2]], p_value.j = p_values[[3]]))
+      return(list(LR_stat = test_stat,
+                  p_value.c = stats::pchisq(test_stat, df = df_diff, lower.tail = FALSE),
+                  p_value.s = p_values[[1]], p_value.z = p_values[[2]], p_value.j = p_values[[3]]))
     }else{
       p_value <- adj_chisq(test_stat = test_stat, config=config, type=type, p=p)
     }
