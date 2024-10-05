@@ -74,7 +74,8 @@ vpc.test.Glmmfits <- function(fitObj, null_formula, type=c("classical", "self",
 
 #' @export
 #' @method vpc.test VpcObj
-vpc.test.VpcObj <- function(fitObj, null_formula, type=c("classical", "self", "zhang", "julius")) {
+vpc.test.VpcObj <- function(fitObj, null_formula, type=c("classical", "self",
+                                                         "zhang", "julius", "all")) {
   vpc.test.Glmmfits(fitObj, null_formula, type)
 }
 
