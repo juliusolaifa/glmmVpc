@@ -92,7 +92,7 @@ pr11 <- function(modObj, type = c("self", "zhang", "julius", "all")) {
     v11 <- inf.mat[ind_lower[1], ind_lower[1]]
     v22 <- inf.mat[ind_lower[2], ind_lower[2]]
     rho <- cov12 /sqrt(v11*v22)
-  } else if(type == "zhang" || type == "julius") {
+  } else if(type == "zhang" || type == "julius" || type == "all") {
     sch_comp <- schur_complement(inf.mat,ind_lower)
     rho <- sch_comp[1,2]/(sqrt(sch_comp[1,1]*sch_comp[2,2]))
   }
