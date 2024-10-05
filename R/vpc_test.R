@@ -2,7 +2,7 @@
 #' @method vpc.test glmmfit
 #' @rdname vpc.test
 vpc.test.glmmfit <- function(fitObj, null_formula, type=c("classical", "self",
-                                                          "zhang", "julius")) {
+                                                          "zhang", "julius","all")) {
 
   type <- match.arg(type)
   if(inherits(fitObj, "vpcObj")) {
@@ -27,6 +27,14 @@ vpc.test.glmmfit <- function(fitObj, null_formula, type=c("classical", "self",
   } else {
     config <- obtain_config(fit0, fitObj)
     p <- pr11(fitObj, type=type)
+    if(type == "all") {
+      types <- c("self", "zhang", "julius")
+      p_values <- lapply(types, function(t) adj_chisq(test_stat = test_stat,
+                                                      config = config, type = t,
+                                                      p = p))
+      return(list(LR_stat = test_stat, p_value.s = p_values[[1]],
+                  p_value.z = p_values[[2]], p_value.j = p_values[[3]]))
+    }
     p_value <- adj_chisq(test_stat = test_stat, config=config, type=type, p=p)
   }
 
@@ -36,7 +44,8 @@ vpc.test.glmmfit <- function(fitObj, null_formula, type=c("classical", "self",
 
 #' @export
 #' @method vpc.test vpcObj
-vpc.test.vpcObj <- function(fitObj, null_formula, type=c("classical", "self", "zhang", "julius")) {
+vpc.test.vpcObj <- function(fitObj, null_formula, type=c("classical", "self",
+                                                         "zhang", "julius", "all")) {
   vpc.test.glmmfit(fitObj, null_formula, type)
 }
 
@@ -45,7 +54,7 @@ vpc.test.vpcObj <- function(fitObj, null_formula, type=c("classical", "self", "z
 #' @method vpc.test Glmmfits
 #' @rdname vpc.test
 vpc.test.Glmmfits <- function(fitObj, null_formula, type=c("classical", "self",
-                                                           "zhang","julius")) {
+                                                           "zhang","julius", "all")) {
   n <- length(fitObj)
   type <- match.arg(type)
   results <- data.frame(t(pbapply::pbsapply(seq_along(fitObj), function(i) {
@@ -84,7 +93,7 @@ vpc.test.VpcObj <- function(fitObj, null_formula, type=c("classical", "self", "z
 #' including additional details if applicable.
 #' @export
 vpc.test <- function(fitObj, null_formula, type=c("classical", "self",
-                                                  "zhang","julius")) {
+                                                  "zhang","julius","all")) {
   UseMethod("vpc.test")
 }
 

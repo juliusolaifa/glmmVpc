@@ -9,19 +9,19 @@
 \method{vpc.test}{glmmfit}(
   fitObj,
   null_formula,
-  type = c("classical", "self", "zhang", "julius")
+  type = c("classical", "self", "zhang", "julius", "all")
 )
 
 \method{vpc.test}{Glmmfits}(
   fitObj,
   null_formula,
-  type = c("classical", "self", "zhang", "julius")
+  type = c("classical", "self", "zhang", "julius", "all")
 )
 
 vpc.test(
   fitObj,
   null_formula,
-  type = c("classical", "self", "zhang", "julius")
+  type = c("classical", "self", "zhang", "julius", "all")
 )
 }
 \arguments{
