@@ -4,7 +4,15 @@
 \alias{batchGLMMFit}
 \title{Batch Generalized Linear Mixed Model (GLMM) Fit for Multiple Features}
 \usage{
-batchGLMMFit(formula, dataMat, family, cov.pattern = "^X", num_cores = 1)
+batchGLMMFit(
+  formula,
+  dataMat,
+  family,
+  cov.pattern = "^X",
+  num_cores = 1,
+  refit = TRUE,
+  timeout = 3
+)
 }
 \arguments{
 \item{formula}{A formula specifying the model to fit, such as
@@ -20,6 +28,11 @@ be used in the model (e.g., "gaussian", "poisson").}
 the \code{dataMat}. Default is "^X".}
 
 \item{num_cores}{Number of computer cores to use in training.}
+
+\item{refit}{Logical indicating whethert a refit should be attempted if model does not converge.
+Model with refitted with a different optimizer}
+
+\item{timeout}{An integer or float indicating timeout for refitting if non-convergence}
 }
 \value{
 A list of model fits, one for each feature.

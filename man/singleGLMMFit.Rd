@@ -4,7 +4,7 @@
 \alias{singleGLMMFit}
 \title{Fit a single GLMM model}
 \usage{
-singleGLMMFit(formula, data, family)
+singleGLMMFit(formula, data, family, refit = TRUE, timeout = 3)
 }
 \arguments{
 \item{formula}{A formula describing the model.}
@@ -12,6 +12,11 @@ singleGLMMFit(formula, data, family)
 \item{data}{A data frame containing the variables in the model.}
 
 \item{family}{A character string representing the family (e.g., "nb" for Negative Binomial).}
+
+\item{refit}{Logical indicating whethert a refit should be attempted if model does not converge.
+Model with refitted with a different optimizer}
+
+\item{timeout}{An integer or float indicating timeout for refitting if non-convergence}
 }
 \value{
 A list with model parameters.

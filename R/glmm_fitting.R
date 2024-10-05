@@ -57,10 +57,13 @@ extractParametersByFamily <- function(family, modObj) {
 #' @param formula A formula describing the model.
 #' @param data A data frame containing the variables in the model.
 #' @param family A character string representing the family (e.g., "nb" for Negative Binomial).
+#' @param refit Logical indicating whethert a refit should be attempted if model does not converge.
+#'        Model with refitted with a different optimizer
+#' @param timeout An integer or float indicating timeout for refitting if non-convergence
 #'
 #' @return A list with model parameters.
 #' @export
-singleGLMMFit <- function(formula, data, family) {
+singleGLMMFit <- function(formula, data, family, refit = TRUE, timeout=3) {
 
   if(!is.data.frame(data)) {
     data <- as.data.frame(data)
@@ -87,21 +90,25 @@ singleGLMMFit <- function(formula, data, family) {
     return(NULL)
   }
 
-  modObj <- R.utils::withTimeout({
-    if(modObj_original$fit$convergence == 1 || modObj_original$sdr$pdHess == F) {
+    if(refit && (modObj_original$fit$convergence == 1 || !modObj_original$sdr$pdHess)){
       print("Re-fitting")
-      stats::update(modObj_original, control=glmmTMB::glmmTMBControl(
+      modObj <- R.utils::withTimeout({
+        stats::update(modObj_original, control=glmmTMB::glmmTMBControl(
                                                     optimizer=stats::optim,
                                                     optArgs=list(method="BFGS")))
-    } else {
-      modObj_original
-    }
-  }, timeout = 1800, onTimeout = "silent")
 
-  if (is.null(modObj)) {
-    print("Re-fitting time out, Returning the original object")
-    modObj <- modObj_original
-  }
+        }, timeout = timeout*60, onTimeout = "silent")
+
+      # If re-fitting time out fails, return the original object
+      if (is.null(modObj)) {
+        print("Re-fitting time out, Returning the original object")
+        modObj <- modObj_original
+      }
+
+    }else{
+      modObj <- modObj_original #No refitting needed
+    }
+
   params <- extractParametersByFamily(family, modObj)
   params$modObj <- modObj
 
@@ -194,10 +201,14 @@ logLik.glmmfit <- function(object, ...) {
 #' @param cov.pattern A regular expression pattern to identify covariates in
 #' the `dataMat`. Default is "^X".
 #' @param num_cores Number of computer cores to use in training.
+#' @param refit Logical indicating whethert a refit should be attempted if model does not converge.
+#'        Model with refitted with a different optimizer
+#' @param timeout An integer or float indicating timeout for refitting if non-convergence
 #'
 #' @return A list of model fits, one for each feature.
 #' @export
-batchGLMMFit <- function(formula, dataMat, family, cov.pattern = "^X", num_cores = 1) {
+batchGLMMFit <- function(formula, dataMat, family, cov.pattern = "^X",
+                         num_cores = 1, refit=TRUE, timeout=3) {
 
   max_cores <- parallel::detectCores() - 1
 
@@ -216,7 +227,8 @@ batchGLMMFit <- function(formula, dataMat, family, cov.pattern = "^X", num_cores
     formula_string <- paste(paste0(deparse(formula[[2]]),i), "~", deparse(formula[[3]]))
     dynamic_formula <- stats::as.formula(formula_string)
     fit <- tryCatch({
-      singleGLMMFit(formula = dynamic_formula, data = data, family = family)
+      singleGLMMFit(formula = dynamic_formula, data = data, family = family,
+                    refit=refit, timeout=timeout)
     }, error = function(e) {
       warning(paste("Error fitting model for Feature",i, ":", e$message))
       return(NULL)
