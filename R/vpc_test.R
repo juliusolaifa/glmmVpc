@@ -68,8 +68,8 @@ vpc.test.Glmmfits <- function(fitObj, null_formula, type=c("classical", "self",
     # dynamic_formula <- stats::as.formula(formula_string)
     vpc.test(fitObj = fitObj[[i]], null_formula = dynamic_formula, type=type)
   })))
-  results$p_value <- as.numeric(results$p_value)
-  results$LR_stat <- as.numeric(results$LR_stat)
+  #results$p_value <- as.numeric(results$p_value)
+  #results$LR_stat <- as.numeric(results$LR_stat)
   return(results)
 }
 
