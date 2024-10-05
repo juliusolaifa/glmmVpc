@@ -63,7 +63,7 @@ extractParametersByFamily <- function(family, modObj) {
 #'
 #' @return A list with model parameters.
 #' @export
-singleGLMMFit <- function(formula, data, family, refit = TRUE, timeout=3) {
+singleGLMMFit <- function(formula, data, family, refit = FALSE, timeout=3) {
 
   if(!is.data.frame(data)) {
     data <- as.data.frame(data)
@@ -208,7 +208,7 @@ logLik.glmmfit <- function(object, ...) {
 #' @return A list of model fits, one for each feature.
 #' @export
 batchGLMMFit <- function(formula, dataMat, family, cov.pattern = "^X",
-                         num_cores = 1, refit=TRUE, timeout=3) {
+                         num_cores = 1, refit=FALSE, timeout=3) {
 
   max_cores <- parallel::detectCores() - 1
 
