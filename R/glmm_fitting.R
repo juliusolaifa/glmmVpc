@@ -88,9 +88,9 @@ singleGLMMFit <- function(formula, data, family) {
   }
 
   modObj <- R.utils::withTimeout({
-    if(modObj$fit$convergence == 1 || modObj$sdr$pdHess == F) {
+    if(modObj_original$fit$convergence == 1 || modObj_original$sdr$pdHess == F) {
       print("Re-fitting")
-      stats::update(modObj, control=glmmTMB::glmmTMBControl(
+      stats::update(modObj_original, control=glmmTMB::glmmTMBControl(
                                                     optimizer=stats::optim,
                                                     optArgs=list(method="BFGS")))
     } else {
