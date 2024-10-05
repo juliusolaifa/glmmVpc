@@ -28,6 +28,7 @@ vpc.test.glmmfit <- function(fitObj, null_formula, type=c("classical", "self",
     config <- obtain_config(fit0, fitObj)
     p <- pr11(fitObj, type=type)
     if(type == "all") {
+      df_diff <- attr(logLik1, "df") - attr(logLik0, "df")
       types <- c("self", "zhang", "julius")
       p_values <- lapply(types, function(t) adj_chisq(test_stat = test_stat,
                                                       config = config, type = t,
