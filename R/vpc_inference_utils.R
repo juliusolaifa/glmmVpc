@@ -82,7 +82,7 @@ schur_complement <- function(A, ind_lower) {
   return(A22 - A21 %*% A11.inv %*% A12)
 }
 
-pr11 <- function(modObj, type = c("self", "zhang", "julius")) {
+pr11 <- function(modObj, type = c("self", "zhang", "julius", "all")) {
   type <- match.arg(type)
   if (!inherits(modObj$Sigma, "matrix")) return(NULL)
   inf.mat <- solve(stats::vcov(modObj))
