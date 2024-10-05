@@ -75,22 +75,32 @@ singleGLMMFit <- function(formula, data, family) {
     stop("Error in creating glmmTMB family: ", e$message)
   })
 
-  modObj <- tryCatch({
+  modObj_original <- tryCatch({
     glmmTMB::glmmTMB(formula = formula, data = data, family = glmmTMBfamily)
   }, error = function(e) {
     message("Error fitting model: ", e$message)
     return(NULL)
   })
 
-  if(modObj$fit$convergence == 1 || modObj$sdr$pdHess == F) {
-    print("Re-fitting")
-    modObj <- stats::update(modObj, control=glmmTMB::glmmTMBControl(
-                                                  optimizer=stats::optim,
-                                                  optArgs=list(method="BFGS")))
+  if (is.null(modObj_original)) {
+    print("Original model fitting failed, returning NULL.")
+    return(NULL)
   }
 
+  modObj <- R.utils::withTimeout({
+    if(modObj$fit$convergence == 1 || modObj$sdr$pdHess == F) {
+      print("Re-fitting")
+      stats::update(modObj, control=glmmTMB::glmmTMBControl(
+                                                    optimizer=stats::optim,
+                                                    optArgs=list(method="BFGS")))
+    } else {
+      modObj_original
+    }
+  }, timeout = 1800, onTimeout = "silent")
+
   if (is.null(modObj)) {
-    return(NULL)
+    print("Re-fitting time out, Returning the original object")
+    modObj <- modObj_original
   }
   params <- extractParametersByFamily(family, modObj)
   params$modObj <- modObj
