@@ -4,7 +4,7 @@
 \alias{singleGLMMFit}
 \title{Fit a single GLMM model}
 \usage{
-singleGLMMFit(formula, data, family, refit = TRUE, timeout = 3)
+singleGLMMFit(formula, data, family, refit = FALSE, timeout = 3)
 }
 \arguments{
 \item{formula}{A formula describing the model.}

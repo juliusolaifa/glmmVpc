@@ -10,7 +10,7 @@ batchGLMMFit(
   family,
   cov.pattern = "^X",
   num_cores = 1,
-  refit = TRUE,
+  refit = FALSE,
   timeout = 3
 )
 }

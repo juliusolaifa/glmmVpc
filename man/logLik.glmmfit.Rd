@@ -4,7 +4,7 @@
 \alias{logLik.glmmfit}
 \title{Log-Likelihood for GLMM Fit}
 \usage{
-logLik.glmmfit(object, ...)
+\method{logLik}{glmmfit}(object, ...)
 }
 \arguments{
 \item{object}{A fitted GLMM object of class \code{glmmfit}.}

@@ -4,7 +4,7 @@
 \alias{vcov.glmmfit}
 \title{Variance-Covariance Matrix for GLMM Fit}
 \usage{
-vcov.glmmfit(object, ...)
+\method{vcov}{glmmfit}(object, ...)
 }
 \arguments{
 \item{object}{A fitted GLMM object of class \code{glmmfit}.}
