@@ -186,10 +186,8 @@ vpc_from_paramMat <- function(family, paramMat, x) {
     args <- switch(
       family,
       "negative_binomial" = c(args, list(phi = row$theta)),
-      "tweedie" = c(args, list(phi = row$phi, power = row$power)),
-      args
+      "tweedie" = c(args, list(phi = row$phi, power = row$power))
     )
-
     vpc_results[[i]] <- calculate_vpc_for_family(family, args, x)
   }
   return(vpc_results)
