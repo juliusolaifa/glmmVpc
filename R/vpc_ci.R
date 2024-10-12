@@ -227,7 +227,7 @@ confint.VpcObj <- function(VpcObj, alpha = 0.05,
                            verbose = FALSE) {
   type <- match.arg(type)
   t(sapply(VpcObj, function(vpcObj) stats::confint(vpcObj, alpha=alpha,
-                                                   tye=type, iter=iter,
+                                                   type=type, iter=iter,
                                                    num_cores=num_cores,
                                                    verbose=verbose)))
 }
