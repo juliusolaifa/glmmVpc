@@ -20,12 +20,14 @@ Imports:
     DESeq2,
     glmmTMB,
     MASS,
+    mvtnorm,
     numDeriv,
     pbapply,
     R.utils,
     S4Vectors,
     stats,
     SummarizedExperiment,
+    tmvtnorm,
     tweedie
 Suggests: 
     testthat (>= 3.0.0)

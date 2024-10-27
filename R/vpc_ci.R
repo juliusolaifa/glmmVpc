@@ -93,6 +93,203 @@ gradients <- function(vpcObj, method="numerical") {
                       method=method)
 }
 
+rmixtnorm <- function(mean, Sigma, pis, n=10) {
+  rng <- stats::runif(n)
+  pis <- cumsum(pis)
+  result <- matrix(NA,nrow=n, ncol = length(mean))
+  colnames(result) <- names(mean)
+  has_sig11 <- names(mean) %in% "sig11"
+  has_sig22 <- names(mean) %in% "sig22"
+  has_sig11_sig22 <- names(mean) %in% c("sig11","sig22")
+  for(i in 1:n) {
+    dat <- numeric(length(mean))
+    names(dat) <- names(mean)
+    if(rng[i] <= pis[1]) {
+      dat <- mvtnorm::rmvnorm(1,mean=mean,sigma = Sigma)
+    }
+    else if(rng[i] > pis[1] && rng[i] <= pis[2]) {
+      lower = ifelse(has_sig22[!has_sig11], 0, -Inf)
+      truncnorm_moments <- tmvtnorm::mtmvnorm(mean = mean[!has_sig11],
+                                              sigma = Sigma[!has_sig11,!has_sig11],
+                                              lower = lower)
+
+      dat.temp <- tmvtnorm::rtmvnorm(1,mean=truncnorm_moments$tmean,
+                                     sigma=truncnorm_moments$tvar,lower=lower)
+      dat[!has_sig11] <- dat.temp
+    }
+    else if(rng[i] > pis[2] && rng[i] <= pis[3]) {
+      lower = ifelse(has_sig11[!has_sig22], 0, -Inf)
+      truncnorm_moments <- tmvtnorm::mtmvnorm(mean = mean[!has_sig22],
+                                              sigma = Sigma[!has_sig22,!has_sig22],
+                                              lower = lower)
+      dat.temp <- tmvtnorm::rtmvnorm(1,mean=truncnorm_moments$tmean,
+                                     sigma=truncnorm_moments$tvar,lower=lower)
+      dat[!has_sig22] <- dat.temp
+    }
+    else {
+      lower <- ifelse(has_sig11_sig22[!has_sig11_sig22], 0, -Inf)
+      dat.temp <- tmvtnorm::rtmvnorm(1,mean=mean[!has_sig11_sig22],
+                                     sigma=Sigma[!has_sig11_sig22, !has_sig11_sig22],
+                                     lower=lower)
+      dat[!has_sig11_sig22] <- dat.temp
+    }
+    result[i,] <- dat
+  }
+  result
+  return(result)
+}
+
+#' Quantile Computation for a Mixture of Multivariate & Truncated Normals
+#'
+#' This function calculates the quantiles for a mixture of multivariate normal
+#' distributions
+#' based on the provided mean vector, covariance matrix, mixture proportions,
+#' and gradient vector.
+#' The quantiles are returned for the confidence interval specified by `alpha`.
+#'
+#' @param mean A numeric vector representing the mean of each component in the multivariate normal distribution.
+#' @param Sigma A covariance matrix associated with the multivariate normal distribution.
+#' @param pis A numeric vector of mixing proportions for the components of the mixture model. The elements of `pis` should sum to 1.
+#' @param grad A numeric vector representing the gradient, used to transform the sampled mixture data.
+#' @param alpha A numeric value specifying the significance level for the confidence interval (default is 0.05, which corresponds to a 95% confidence interval).
+#' @param n An integer specifying the number of samples to draw from the mixture distribution (default is 100).
+#'
+#' @return A numeric vector of length 2 containing the lower and upper quantiles for the confidence interval, calculated as \code{c(alpha/2, 1 - alpha/2)}.
+#'
+#' @export
+#'
+qmixtnorm <- function(mean, Sigma, pis, grad, alpha=0.05, n=100) {
+  mixtnorm <- rmixtnorm(mean=mean, Sigma=Sigma, pis=pis, n=n)
+  rvpc <- mixtnorm %*% grad
+  stats::quantile(rvpc, c(alpha/2, 1-alpha/2))
+}
+
+#' Bootstrap Confidence Interval for VPC
+#'
+#' This function calculates a bootstrap confidence interval for the Variance Partition Coefficient (VPC) by
+#' simulating new data, fitting the model, and computing the VPC values from the bootstrap fits.
+#'
+#' @param vpcObj An object containing model information, including coefficients, family, and grouping variable.
+#' @param iter Integer. Number of iterations for the bootstrap simulation.
+#' @param num_cores Integer. Number of cores to use for parallel processing during model fitting.
+#' @param alpha Numeric. Significance level for the confidence interval (default is 0.05).
+#'
+#' @return A numeric vector of length 2 containing the lower and upper quantiles for the confidence interval.
+#' @export
+#'
+boostrap_vpc_ci <- function(vpcObj, iter = 100, num_cores = 4, alpha = 0.05) {
+  # Extract model parameters
+  params <- stats::coef(vpcObj$modObj)
+  beta <- params[grep("b", names(params))]
+  Sigma_vec <- params[grep("sig", names(params))]
+  Sigma <- vec2mat(Sigma_vec)
+  family <- vpcObj$modObj$family
+
+  # Check for family-specific parameters
+  if (family == "negative_binomial") {
+    theta <- params[grep("theta", names(params))]
+  } else {
+    phi <- params[grep("phi", names(params))]
+    power <- params[grep("power", names(params))]
+  }
+
+  # Extract additional model info
+  grpVar <- vpcObj$modObj$modObj$modelInfo$grpVar
+  frame <- stats::model.frame(vpcObj$modObj)
+  ns <- as.numeric(table(frame[, grpVar]))
+  X <- frame[, "X"]
+  link <- vpcObj$modObj$modObj$modelInfo$family$link
+
+  # Construct formula for model fitting
+  formula <- formula(vpcObj$modObj$modObj)
+  lhs <- as.character(formula[[2]])
+  lhs <- gsub("[0-9]+$", "", lhs)
+  rhs <- formula[[3]]
+  formula <- stats::as.formula(paste(lhs, "~", deparse(rhs)))
+  x <- vpcObj$x
+
+  # Simulate new data using bootstrap method
+  data <- glmmVpc::batchGLMMData(beta = beta, ns = ns,
+                                 Sigma = Sigma, num = iter,
+                                 X = X, theta = theta,
+                                 family = family, phi = phi,
+                                 power = power, link = link)
+
+  # Fit the model on simulated data
+  fits <- glmmVpc::batchGLMMFit(formula = formula, dataMat = data,
+                                family = family, num_cores = num_cores)
+
+  # Compute VPC values from bootstrap fits
+  vpcs <- glmmVpc::vpc(fits, x = x)
+  vpcs <- sapply(vpcs, function(x) x$vpc)
+
+  # Compute confidence interval
+  ci <- stats::quantile(vpcs, probs = c(alpha / 2, 1 - alpha / 2))
+
+  return(ci)
+}
+
+#' Confidence Interval Computation for VPC using Mixture Normal Quantiles
+#'
+#' This function calculates the confidence interval for the Variance Partition Coefficient (VPC)
+#' by computing quantiles from a mixture of normal distributions. The function extracts
+#' necessary parameters from a fitted model object and applies the `qmixtnorm` function.
+#'
+#' @param vpcObj An object containing the fitted model and additional VPC-related information.
+#' @param alpha Numeric. The significance level for the confidence interval (default is 0.05).
+#' @param n Integer. Number of samples to draw for quantile estimation (default is 1000).
+#'
+#' @return A numeric vector of length 2 containing the lower and upper bounds of the confidence interval.
+#' @export
+#'
+adjustedc_mixture_ci <- function(vpcObj, alpha = 0.05, n = 1000) {
+  # Extract fitted model from vpcObj
+  fitObj <- vpcObj$modObj
+
+  # Obtain mean vector and covariance matrix from the model
+  mean <- stats::coef(fitObj)
+  Sigma <- stats::vcov(fitObj)
+
+  # Calculate mixture proportions
+  p11 <- pr11(fitObj)  # Assuming pr11 is defined and computes relevant probability
+  pis <- c(p11, 0.25, 0.25, 0.5 - p11)
+
+  # Get gradient vector for transformation
+  grad <- gradients(vpcObj)  # Assuming gradients is defined and returns gradient vector
+
+  # Compute the confidence interval using mixture normal quantiles
+  ci <- qmixtnorm(mean = mean, Sigma = Sigma, pis = pis, grad = grad, alpha = alpha, n = n)
+
+  return(ci)
+}
+
+#' Confidence Interval Calculation for VPC Using Standard Error and Critical Value
+#'
+#' This function calculates the confidence interval for the Variance Partition Coefficient (VPC)
+#' using the standard error and critical value approach. It assumes a normal approximation for the VPC.
+#'
+#' @param vpcObj An object containing the VPC model with variance-covariance information.
+#' @param vpc.value Numeric. The VPC value for which the confidence interval is to be computed.
+#' @param alpha Numeric. The significance level for the confidence interval (default is 0.05).
+#'
+#' @return A numeric vector of length 2 containing the lower and upper bounds of the confidence interval.
+#' @export
+#'
+classical_vpc_ci <- function(vpcObj, vpc.value, alpha = 0.05) {
+  # Calculate standard error of the VPC
+  stderr.vpc <- sqrt(stats::vcov(vpcObj))
+
+  # Determine critical value based on significance level
+  crit.val <- stats::qnorm(1 - alpha / 2)
+
+  # Compute the confidence interval
+  ci <- c(vpc.value - crit.val * stderr.vpc, vpc.value + crit.val * stderr.vpc)
+
+  return(ci)
+}
+
+
+
 #' Calculate the Variance-Covariance Matrix for a vpcObj
 #'
 #' This function computes the variance-covariance matrix for an object of class `vpcObj`.
@@ -130,76 +327,28 @@ vcov.vpcObj <- function(object, ...) {
 #'
 #' @export
 confint.vpcObj <- function(vpcObj, alpha = 0.05,
-                           type = c("classical", "bootstrap"),
-                           iter = 100, num_cores = 1,
-                           verbose = FALSE) {
+                           type = c("classical", "bootstrap", "adjusted"),
+                           num_cores = 1, verbose = FALSE) {
   type <- match.arg(type)
+  vpc.value <- vpcObj$vpc
 
   if (type == "classical") {
-    vpc.value <- vpcObj$vpc
-    stderr.vpc <- sqrt(stats::vcov(vpcObj))
-    crit.val <- stats::qnorm(1 - alpha / 2)
-    lwb <- vpc.value - crit.val * stderr.vpc
-    upb <- vpc.value + crit.val * stderr.vpc
-    result <- c(Lower = lwb, VPC = vpc.value, Upper = upb)
-
-    if (verbose) {
-      convergence.code <- vpcObj$modObj$modObj$fit$convergence == 0
-      pdHessian <- vpcObj$modObj$modObj$sdr$pdHess
-      result <- c(result, list(convergence = convergence.code,
-                               pdHess = pdHessian))
-    }
-
-    return(result)
-
+    ci <- classical_vpc_ci(vpcObj, vpc.value, alpha = 0.05)
   } else if (type == "bootstrap") {
-    params <- stats::coef(vpcObj$modObj)
-    beta <- params[grep("b", names(params))]
-    Sigma_vec <- params[grep("sig", names(params))]
-    Sigma <- vec2mat(Sigma_vec)
-    family <- vpcObj$modObj$family
-
-    if (family == "negative_binomial") {
-      theta <- params[grep("theta", names(params))]
-    } else {
-      phi <- params[grep("phi", names(params))]
-      power <- params[grep("power", names(params))]
-    }
-
-    grpVar <- vpcObj$modObj$modObj$modelInfo$grpVar
-    frame <- stats::model.frame(vpcObj$modObj)
-    ns <- as.numeric(table(frame[, grpVar]))
-    X <- frame[, "X"]
-    link <- vpcObj$modObj$modObj$modelInfo$family$link
-    formula <- formula(vpcObj$modObj$modObj)
-    lhs <- as.character(formula[[2]])
-    lhs <- gsub("[0-9]+$", "", lhs)
-    rhs <- formula[[3]]
-    formula <- stats::as.formula(paste(lhs, "~", deparse(rhs)))
-    x <- vpcObj$x
-
-    # Simulate new data using the bootstrap method
-    data <- glmmVpc::batchGLMMData(beta = beta, ns = ns,
-                                   Sigma = Sigma, num = iter,
-                                   X = X, theta = theta,
-                                   family = family, phi = phi,
-                                   power = power, link = link)
-
-    # Fit the model on the simulated data
-    fits <- glmmVpc::batchGLMMFit(formula = formula, dataMat = data,
-                                  family = family, num_cores = num_cores)
-
-    # Compute the VPC values from the bootstrap fits
-    vpcs <- glmmVpc::vpc(fits, x = x)
-    vpcs <- sapply(vpcs, function(x) x$vpc)
-
-    # Compute the quantiles to form the confidence interval
-    ci <- stats::quantile(vpcs, probs = c(alpha / 2, 1 - alpha / 2))
-
-    result <- c(Lower = ci[1], VPC = stats::median(vpcs), Upper = ci[2])
-
-    return(result)
+    ci <- boostrap_vpc_ci(vpcObj, iter = 100, num_cores = 4, alpha = alpha)
+  } else if (type == "adjusted") {
+    ci <- adjustedc_mixture_ci(vpcObj, alpha = alpha, n = 1000)
   }
+
+  result <- c(Lower = ci[1], VPC = vpc.value, Upper = ci[2])
+
+  if (verbose) {
+    convergence.code <- vpcObj$modObj$modObj$fit$convergence == 0
+    pdHessian <- vpcObj$modObj$modObj$sdr$pdHess
+    result <- c(result, list(convergence = convergence.code,
+                             pdHess = pdHessian))
+  }
+  return(result)
 }
 
 
