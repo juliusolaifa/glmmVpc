@@ -315,9 +315,10 @@ vcov.vpcObj <- function(object, ...) {
 #'
 #' @param vpcObj An object of class `vpcObj` containing the model fit and VPC estimates.
 #' @param alpha Significance level for the confidence intervals. Default is 0.05 (for 95% CI).
-#' @param type Character. Specifies the type of confidence interval. Can be either "classical" or "bootstrap".
+#' @param type Character. Specifies the type of confidence interval. Can be either "classical", "bootstrap" or "adjusted".
 #'   - "classical": Uses the classical method based on the standard normal distribution.
 #'   - "bootstrap": Computes confidence intervals using the parametric bootstrap method.
+#'   - "adjusted": Computes confidence intervals Delta Method while adjusting for boundary.
 #' @param iter Integer. The number of bootstrap iterations to perform (for bootstrap type). Default is 100.
 #' @param num_cores Integer. The number of cores to use for parallel computation in the bootstrap method. Default is 1.
 #' @param verbose Logical. If `TRUE`, provides additional information about model convergence and the Hessian matrix's positive definiteness.
