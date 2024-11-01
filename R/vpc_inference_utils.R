@@ -87,16 +87,20 @@ pr11 <- function(modObj, type = c("self", "zhang", "julius", "all")) {
   if (!inherits(modObj$Sigma, "matrix")) return(NULL)
   inf.mat <- solve(stats::vcov(modObj))
   ind_lower <- grep("sig([0-9])\\1", colnames(inf.mat))
+  #print(ind_lower)
+  #print(modObj$modObj$sdr$pdHess)
   if (type == "self") {
-    cov12 <- inf.mat[ind_lower[1], ind_lower[2]]
-    v11 <- inf.mat[ind_lower[1], ind_lower[1]]
-    v22 <- inf.mat[ind_lower[2], ind_lower[2]]
-    rho <- cov12 /sqrt(v11*v22)
+    I_12 <- inf.mat[ind_lower[1], ind_lower[2]]
+    I_11 <- inf.mat[ind_lower[1], ind_lower[1]]
+    I_22 <- inf.mat[ind_lower[2], ind_lower[2]]
+    rho <- I_12 /sqrt(I_11*I_22)
+    #print(rho)
   } else if(type == "zhang" || type == "julius" || type == "all") {
     sch_comp <- schur_complement(inf.mat,ind_lower)
     rho <- sch_comp[1,2]/(sqrt(sch_comp[1,1]*sch_comp[2,2]))
   }
-  p <- acos(rho)/pi
+  p <- acos(rho)/(2*pi)
+  #print(p)
   return(p)
 }
 
