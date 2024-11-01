@@ -311,32 +311,32 @@ vcov.vpcObj <- function(object, ...) {
 #' Confidence Intervals for VPC Estimates
 #'
 #' This function computes confidence intervals for Variance Partition Coefficient (VPC) estimates
-#' from an object of class `vpcObj`. The function supports both classical and bootstrap confidence interval types.
+#' from an object of class `vpcObj`. The function supports three confidence interval types: "classical", "bootstrap", and "adjusted".
 #'
 #' @param vpcObj An object of class `vpcObj` containing the model fit and VPC estimates.
-#' @param alpha Significance level for the confidence intervals. Default is 0.05 (for 95% CI).
-#' @param type Character. Specifies the type of confidence interval. Can be either "classical", "bootstrap" or "adjusted".
-#'   - "classical": Uses the classical method based on the standard normal distribution.
-#'   - "bootstrap": Computes confidence intervals using the parametric bootstrap method.
-#'   - "adjusted": Computes confidence intervals Delta Method while adjusting for boundary.
-#' @param iter Integer. The number of bootstrap iterations to perform (for bootstrap type). Default is 100.
+#' @param alpha Numeric. The significance level for the confidence intervals. Default is 0.05 (for a 95% CI).
+#' @param type Character. Specifies the type of confidence interval to compute. Options include:
+#'   - "classical": Based on the standard normal distribution.
+#'   - "bootstrap": Using a parametric bootstrap method.
+#'   - "adjusted": Using the Delta Method, adjusted for boundary conditions.
+#' @param iter Integer. The number of bootstrap iterations to perform if `type = "bootstrap"`. Default is 100.
 #' @param num_cores Integer. The number of cores to use for parallel computation in the bootstrap method. Default is 1.
-#' @param verbose Logical. If `TRUE`, provides additional information about model convergence and the Hessian matrix's positive definiteness.
+#' @param verbose Logical. If `TRUE`, additional information is provided regarding model convergence and positive definiteness of the Hessian matrix.
 #'
-#' @return A vector with three elements: Lower bound, the VPC estimate, and the upper bound of the confidence interval.
-#'   Additional information is included if `verbose = TRUE`. Returns `NA` if the model did not converge or if the Hessian is not positive definite.
+#' @return A named vector with three elements: the lower bound, the VPC estimate, and the upper bound of the confidence interval.
+#'   When `verbose = TRUE`, additional diagnostic details on convergence and the Hessian may be included. Returns `NA` if the model did not converge or if the Hessian is not positive definite.
 #'
 #' @export
 confint.vpcObj <- function(vpcObj, alpha = 0.05,
                            type = c("classical", "bootstrap", "adjusted"),
-                           num_cores = 1, verbose = FALSE) {
+                           num_cores = 1, iter=100,verbose = FALSE) {
   type <- match.arg(type)
   vpc.value <- vpcObj$vpc
 
   if (type == "classical") {
     ci <- classical_vpc_ci(vpcObj, vpc.value, alpha = 0.05)
   } else if (type == "bootstrap") {
-    ci <- boostrap_vpc_ci(vpcObj, iter = 100, num_cores = 4, alpha = alpha)
+    ci <- boostrap_vpc_ci(vpcObj, iter = iter, num_cores = 4, alpha = alpha)
   } else if (type == "adjusted") {
     ci <- adjustedc_mixture_ci(vpcObj, alpha = alpha, n = 1000)
   }
@@ -360,9 +360,10 @@ confint.vpcObj <- function(vpcObj, alpha = 0.05,
 #'
 #' @param VpcObj An object of class `vpcObj` containing the model fit and VPC estimates.
 #' @param alpha Significance level for the confidence intervals. Default is 0.05 (for 95% CI).
-#' @param type Character. Specifies the type of confidence interval. Can be either "classical" or "bootstrap".
-#'   - "classical": Uses the classical method based on the standard normal distribution.
-#'   - "bootstrap": Computes confidence intervals using the parametric bootstrap method.
+#' @param type Character. Specifies the type of confidence interval to compute. Options include:
+#'   - "classical": Based on the standard normal distribution.
+#'   - "bootstrap": Using a parametric bootstrap method.
+#'   - "adjusted": Using the Delta Method, adjusted for boundary conditions.
 #' @param iter Integer. The number of bootstrap iterations to perform (for bootstrap type). Default is 100.
 #' @param num_cores Integer. The number of cores to use for parallel computation in the bootstrap method. Default is 1.
 #' @param verbose Logical. If `TRUE`, provides additional information about model convergence and the Hessian matrix's positive definiteness.
