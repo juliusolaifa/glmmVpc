@@ -95,7 +95,6 @@ gradients <- function(vpcObj, method="numerical") {
 
 rmixtnorm <- function(mean, Sigma, pis, n=10) {
   rng <- stats::runif(n)
-  print(pis)
   pis <- cumsum(pis)
   result <- matrix(NA,nrow=n, ncol = length(mean))
   colnames(result) <- names(mean)
@@ -252,16 +251,21 @@ adjustedc_mixture_ci <- function(vpcObj, alpha = 0.05, n = 1000) {
   Sigma <- stats::vcov(fitObj)
 
   # Calculate mixture proportions
-  p11 <- pr11(fitObj)
-  pis <- c(p11, 0.25, 0.25, 0.5 - p11)
+  if(!fitObj$modObj$sdr$pdHess) {
+    return(c(NA,NA))
+  }else{
+    p11 <- pr11(fitObj)
+    pis <- c(p11, 0.25, 0.25, 0.5 - p11)
 
-  # Get gradient vector for transformation
-  grad <- gradients(vpcObj)
+    # Get gradient vector for transformation
+    grad <- gradients(vpcObj)
 
-  # Compute the confidence interval using mixture normal quantiles
-  ci <- qmixtnorm(mean = mean, Sigma = Sigma, pis = pis, grad = grad, alpha = alpha, n = n)
+    # Compute the confidence interval using mixture normal quantiles
+    ci <- qmixtnorm(mean = mean, Sigma = Sigma, pis = pis, grad = grad, alpha = alpha, n = n)
 
-  return(ci)
+    return(ci)
+  }
+
 }
 
 #' Confidence Interval Calculation for VPC Using Standard Error and Critical Value

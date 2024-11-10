@@ -94,13 +94,11 @@ pr11 <- function(modObj, type = c("self", "zhang", "julius", "all")) {
     I_11 <- inf.mat[ind_lower[1], ind_lower[1]]
     I_22 <- inf.mat[ind_lower[2], ind_lower[2]]
     rho <- I_12 /sqrt(I_11*I_22)
-    #print(rho)
   } else if(type == "zhang" || type == "julius" || type == "all") {
     sch_comp <- schur_complement(inf.mat,ind_lower)
     rho <- sch_comp[1,2]/(sqrt(sch_comp[1,1]*sch_comp[2,2]))
   }
   p <- acos(rho)/(2*pi)
-  #print(p)
   return(p)
 }
 
@@ -133,10 +131,10 @@ pr11 <- function(modObj, type = c("self", "zhang", "julius", "all")) {
 #' quantiles <- qmtmvnorm(mean_vector, cov_matrix, lower_limits, upper_limits)
 #' print(quantiles)
 #' @export
-# qmtmvnorm <- function(mu, Sigma, lower, upper, n_samples = 10000, alpha = 0.05) {
-#   samples <- rtmvnorm(n_samples, mean = mu, sigma = Sigma,
-#                       lower = lower, upper = upper)
-#
-#   quantiles <- quantile(samples, probs = c(alpha / 2, 1 - alpha / 2))
-#   return(quantiles)
-# }
+qmtmvnorm <- function(mu, Sigma, lower, upper, n_samples = 10000, alpha = 0.05) {
+  samples <- rtmvnorm(n_samples, mean = mu, sigma = Sigma,
+                      lower = lower, upper = upper)
+
+  quantiles <- quantile(samples, probs = c(alpha / 2, 1 - alpha / 2))
+  return(quantiles)
+}
