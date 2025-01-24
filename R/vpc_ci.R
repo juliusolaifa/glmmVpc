@@ -109,30 +109,32 @@ rmixtnorm <- function(mean, Sigma, pis, n=10) {
     }
     else if(rng[i] > pis[1] && rng[i] <= pis[2]) {
       lower = ifelse(has_sig22[!has_sig11], 0, -Inf)
-      truncnorm_moments <- tmvtnorm::mtmvnorm(mean = mean[!has_sig11],
-                                              sigma = Sigma[!has_sig11,!has_sig11],
-                                              lower = lower)
-
-      dat.temp <- tmvtnorm::rtmvnorm(1,sigma=truncnorm_moments$tvar,lower=lower)
+      # truncnorm_moments <- tmvtnorm::mtmvnorm(mean = mean[!has_sig11],
+      #                                         sigma = Sigma[!has_sig11,!has_sig11],
+      #                                         lower = lower)
+      #
+      # dat.temp <- tmvtnorm::rtmvnorm(1,sigma=truncnorm_moments$tvar,lower=lower)
+      dat.temp <- tmvtnorm::rtmvnorm(1,sigma=Sigma[!has_sig11,!has_sig11],lower=lower)
       dat[!has_sig11] <- dat.temp
     }
     else if(rng[i] > pis[2] && rng[i] <= pis[3]) {
       lower = ifelse(has_sig11[!has_sig22], 0, -Inf)
-      truncnorm_moments <- tmvtnorm::mtmvnorm(mean = mean[!has_sig22],
-                                              sigma = Sigma[!has_sig22,!has_sig22],
-                                              lower = lower)
-      dat.temp <- tmvtnorm::rtmvnorm(1,sigma=truncnorm_moments$tvar,lower=lower)
+      # truncnorm_moments <- tmvtnorm::mtmvnorm(mean = mean[!has_sig22],
+      #                                         sigma = Sigma[!has_sig22,!has_sig22],
+      #                                         lower = lower)
+      # dat.temp <- tmvtnorm::rtmvnorm(1,sigma=truncnorm_moments$tvar,lower=lower)
+      dat.temp <- tmvtnorm::rtmvnorm(1,sigma=Sigma[!has_sig22,!has_sig22],lower=lower)
       dat[!has_sig22] <- dat.temp
     }
     else {
       lower <- ifelse(has_sig11_sig22[!has_sig11_sig22], 0, -Inf)
-      dat.temp <- tmvtnorm::rtmvnorm(1,sigma=Sigma[!has_sig11_sig22, !has_sig11_sig22],
-                                     lower=lower)
+      # dat.temp <- tmvtnorm::rtmvnorm(1,sigma=Sigma[!has_sig11_sig22, !has_sig11_sig22],
+      #                                lower=lower)
+      dat.temp <- mvtnorm::rmvnorm(1,sigma=Sigma[!has_sig11_sig22, !has_sig11_sig22])
       dat[!has_sig11_sig22] <- dat.temp
     }
     result[i,] <- dat
   }
-  result
   return(result)
 }
 
