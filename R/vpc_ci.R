@@ -105,7 +105,7 @@ rmixtnorm <- function(mean, Sigma, pis, n=10) {
     dat <- numeric(length(mean))
     names(dat) <- names(mean)
     if(rng[i] <= pis[1]) {
-      dat <- mvtnorm::rmvnorm(1,mean=mean,sigma = Sigma)
+      dat <- mvtnorm::rmvnorm(1,sigma = Sigma)
     }
     else if(rng[i] > pis[1] && rng[i] <= pis[2]) {
       lower = ifelse(has_sig22[!has_sig11], 0, -Inf)
@@ -113,8 +113,7 @@ rmixtnorm <- function(mean, Sigma, pis, n=10) {
                                               sigma = Sigma[!has_sig11,!has_sig11],
                                               lower = lower)
 
-      dat.temp <- tmvtnorm::rtmvnorm(1,mean=truncnorm_moments$tmean,
-                                     sigma=truncnorm_moments$tvar,lower=lower)
+      dat.temp <- tmvtnorm::rtmvnorm(1,sigma=truncnorm_moments$tvar,lower=lower)
       dat[!has_sig11] <- dat.temp
     }
     else if(rng[i] > pis[2] && rng[i] <= pis[3]) {
@@ -122,14 +121,12 @@ rmixtnorm <- function(mean, Sigma, pis, n=10) {
       truncnorm_moments <- tmvtnorm::mtmvnorm(mean = mean[!has_sig22],
                                               sigma = Sigma[!has_sig22,!has_sig22],
                                               lower = lower)
-      dat.temp <- tmvtnorm::rtmvnorm(1,mean=truncnorm_moments$tmean,
-                                     sigma=truncnorm_moments$tvar,lower=lower)
+      dat.temp <- tmvtnorm::rtmvnorm(1,sigma=truncnorm_moments$tvar,lower=lower)
       dat[!has_sig22] <- dat.temp
     }
     else {
       lower <- ifelse(has_sig11_sig22[!has_sig11_sig22], 0, -Inf)
-      dat.temp <- tmvtnorm::rtmvnorm(1,mean=mean[!has_sig11_sig22],
-                                     sigma=Sigma[!has_sig11_sig22, !has_sig11_sig22],
+      dat.temp <- tmvtnorm::rtmvnorm(1,sigma=Sigma[!has_sig11_sig22, !has_sig11_sig22],
                                      lower=lower)
       dat[!has_sig11_sig22] <- dat.temp
     }
@@ -236,19 +233,21 @@ boostrap_vpc_ci <- function(vpcObj, iter = 100, num_cores = 4, alpha = 0.05) {
 #' necessary parameters from a fitted model object and applies the `qmixtnorm` function.
 #'
 #' @param vpcObj An object containing the fitted model and additional VPC-related information.
+#' @param vpc.value Numeric. The VPC value for which the confidence interval is to be computed.
 #' @param alpha Numeric. The significance level for the confidence interval (default is 0.05).
 #' @param n Integer. Number of samples to draw for quantile estimation (default is 1000).
 #'
 #' @return A numeric vector of length 2 containing the lower and upper bounds of the confidence interval.
 #' @export
 #'
-adjustedc_mixture_ci <- function(vpcObj, alpha = 0.05, n = 1000) {
+adjustedc_mixture_ci <- function(vpcObj,vpc.value,alpha = 0.05, n = 1000) {
   # Extract fitted model from vpcObj
   fitObj <- vpcObj$modObj
 
   # Obtain mean vector and covariance matrix from the model
   mean <- stats::coef(fitObj)
   Sigma <- stats::vcov(fitObj)
+  n.sample <- nobs(fitObj)
 
   # Calculate mixture proportions
   if(!fitObj$modObj$sdr$pdHess) {
@@ -261,8 +260,10 @@ adjustedc_mixture_ci <- function(vpcObj, alpha = 0.05, n = 1000) {
     grad <- gradients(vpcObj)
 
     # Compute the confidence interval using mixture normal quantiles
-    ci <- qmixtnorm(mean = mean, Sigma = Sigma, pis = pis, grad = grad, alpha = alpha, n = n)
-
+    qmix <- qmixtnorm(mean=mean, Sigma=Sigma, pis=pis,
+                      grad=grad, alpha=alpha, n=n) / sqrt(n.sample)
+    # ci <- qmixtnorm(mean = mean, Sigma = Sigma, pis = pis, grad = grad, alpha = alpha, n = n)
+    ci <- c(vpc.value - qmix[2], vpc.value - qmix[1])
     return(ci)
   }
 
@@ -339,11 +340,11 @@ confint.vpcObj <- function(vpcObj, alpha = 0.05,
   vpc.value <- vpcObj$vpc
 
   if (type == "classical") {
-    ci <- classical_vpc_ci(vpcObj, vpc.value, alpha = 0.05)
+    ci <- classical_vpc_ci(vpcObj, vpc.value, alpha = alpha)
   } else if (type == "bootstrap") {
     ci <- boostrap_vpc_ci(vpcObj, iter = iter, num_cores = 4, alpha = alpha)
   } else if (type == "adjusted") {
-    ci <- adjustedc_mixture_ci(vpcObj, alpha = alpha, n = 1000)
+    ci <- adjustedc_mixture_ci(vpcObj, vpc.value, alpha = alpha, n = 1000)
   }
 
   result <- c(Lower = ci[1], VPC = vpc.value, Upper = ci[2])

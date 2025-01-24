@@ -104,37 +104,37 @@ pr11 <- function(modObj, type = c("self", "zhang", "julius", "all")) {
 
 
 
-############ q multivariate mix norm ########
-
-#' Compute Quantiles for a Multivariate Truncated Normal Distribution
+#' ############ q multivariate mix norm ########
 #'
-#' This function calculates the lower and upper quantiles for a multivariate
-#' truncated normal distribution given the specified mean vector, covariance
-#' matrix, and truncation limits.
+#' #' Compute Quantiles for a Multivariate Truncated Normal Distribution
+#' #'
+#' #' This function calculates the lower and upper quantiles for a multivariate
+#' #' truncated normal distribution given the specified mean vector, covariance
+#' #' matrix, and truncation limits.
+#' #'
+#' #' @param mu A numeric vector representing the mean of the distribution.
+#' #' @param Sigma A covariance matrix for the multivariate normal distribution.
+#' #' @param lower A numeric vector specifying the lower truncation limits.
+#' #' @param upper A numeric vector specifying the upper truncation limits.
+#' #' @param n_samples An integer specifying the number of samples to generate
+#' #' (default is 10000).
+#' #' @param alpha A numeric value representing the significance level for quantile
+#' #' calculation (default is 0.05).
+#' #'
+#' #' @return A numeric vector containing the lower and upper quantiles corresponding
+#' #' to the specified alpha.
+#' #' @examples
+#' #' mean_vector <- c(0, 0)
+#' #' cov_matrix <- matrix(c(1, 0.5, 0.5, 1), nrow = 2)
+#' #' lower_limits <- c(-Inf, -Inf)
+#' #' upper_limits <- c(1, 1)
+#' #' quantiles <- qmtmvnorm(mean_vector, cov_matrix, lower_limits, upper_limits)
+#' #' print(quantiles)
+#' #' @export
+#' qmtmvnorm <- function(mu, Sigma, lower, upper, n_samples = 10000, alpha = 0.05) {
+#'   samples <- rtmvnorm(n_samples, mean = mu, sigma = Sigma,
+#'                       lower = lower, upper = upper)
 #'
-#' @param mu A numeric vector representing the mean of the distribution.
-#' @param Sigma A covariance matrix for the multivariate normal distribution.
-#' @param lower A numeric vector specifying the lower truncation limits.
-#' @param upper A numeric vector specifying the upper truncation limits.
-#' @param n_samples An integer specifying the number of samples to generate
-#' (default is 10000).
-#' @param alpha A numeric value representing the significance level for quantile
-#' calculation (default is 0.05).
-#'
-#' @return A numeric vector containing the lower and upper quantiles corresponding
-#' to the specified alpha.
-#' @examples
-#' mean_vector <- c(0, 0)
-#' cov_matrix <- matrix(c(1, 0.5, 0.5, 1), nrow = 2)
-#' lower_limits <- c(-Inf, -Inf)
-#' upper_limits <- c(1, 1)
-#' quantiles <- qmtmvnorm(mean_vector, cov_matrix, lower_limits, upper_limits)
-#' print(quantiles)
-#' @export
-qmtmvnorm <- function(mu, Sigma, lower, upper, n_samples = 10000, alpha = 0.05) {
-  samples <- rtmvnorm(n_samples, mean = mu, sigma = Sigma,
-                      lower = lower, upper = upper)
-
-  quantiles <- quantile(samples, probs = c(alpha / 2, 1 - alpha / 2))
-  return(quantiles)
-}
+#'   quantiles <- quantile(samples, probs = c(alpha / 2, 1 - alpha / 2))
+#'   return(quantiles)
+#' }

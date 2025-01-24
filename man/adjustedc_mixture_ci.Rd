@@ -4,10 +4,12 @@
 \alias{adjustedc_mixture_ci}
 \title{Confidence Interval Computation for VPC using Mixture Normal Quantiles}
 \usage{
-adjustedc_mixture_ci(vpcObj, alpha = 0.05, n = 1000)
+adjustedc_mixture_ci(vpcObj, vpc.value, alpha = 0.05, n = 1000)
 }
 \arguments{
 \item{vpcObj}{An object containing the fitted model and additional VPC-related information.}
+
+\item{vpc.value}{Numeric. The VPC value for which the confidence interval is to be computed.}
 
 \item{alpha}{Numeric. The significance level for the confidence interval (default is 0.05).}
 

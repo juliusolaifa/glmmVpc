@@ -7,7 +7,7 @@
 \method{confint}{VpcObj}(
   VpcObj,
   alpha = 0.05,
-  type = c("classical", "bootstrap"),
+  type = c("classical", "bootstrap", "adjusted"),
   iter = 100,
   num_cores = 1,
   verbose = FALSE
