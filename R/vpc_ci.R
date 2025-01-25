@@ -263,7 +263,7 @@ adjustedc_mixture_ci <- function(vpcObj,vpc.value,alpha = 0.05, n = 1000) {
 
     # Compute the confidence interval using mixture normal quantiles
     qmix <- qmixtnorm(mean=mean, Sigma=Sigma, pis=pis,
-                      grad=grad, alpha=alpha, n=n) / sqrt(n.sample)
+                      grad=grad, alpha=alpha, n=n) #/ sqrt(n.sample)
     # ci <- qmixtnorm(mean = mean, Sigma = Sigma, pis = pis, grad = grad, alpha = alpha, n = n)
     ci <- c(vpc.value - qmix[2], vpc.value - qmix[1])
     return(ci)
