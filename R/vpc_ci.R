@@ -311,7 +311,7 @@ vcov.vpcObj <- function(object, ...) {
   grad.vpc <- gradients(object)
   vcov.mod <- stats::vcov(object$modObj)
   n <- stats::nobs(object$modObj)
-  var.vpc <- (grad.vpc %*% vcov.mod %*% grad.vpc)/n
+  var.vpc <- grad.vpc %*% vcov.mod %*% grad.vpc
   return(var.vpc)
 }
 
