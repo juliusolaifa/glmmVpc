@@ -7,7 +7,7 @@
 \method{confint}{VpcObj}(
   VpcObj,
   alpha = 0.05,
-  type = c("classical", "bootstrap", "adjusted"),
+  type = c("classical", "bootstrap", "adjusted.s", "adjusted.c"),
   iter = 100,
   num_cores = 1,
   verbose = FALSE
@@ -22,7 +22,8 @@
 \itemize{
 \item "classical": Based on the standard normal distribution.
 \item "bootstrap": Using a parametric bootstrap method.
-\item "adjusted": Using the Delta Method, adjusted for boundary conditions.
+\item "adjusted.s": Using the Delta Method, adjusted for boundary conditions (Self & Liang)
+\item "adjusted.c": Using the Delta Method, adjusted for boundary conditions (Chant)
 }}
 
 \item{iter}{Integer. The number of bootstrap iterations to perform (for bootstrap type). Default is 100.}

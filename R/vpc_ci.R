@@ -93,7 +93,7 @@ gradients <- function(vpcObj, method="numerical") {
                       method=method)
 }
 
-rmixtnorm <- function(mean, Sigma, pis, n=10) {
+rmixtnorm <- function(mean, Sigma, pis, n=10, truncated = TRUE) {
   rng <- stats::runif(n)
   pis <- cumsum(pis)
   result <- matrix(NA,nrow=n, ncol = length(mean))
@@ -101,37 +101,37 @@ rmixtnorm <- function(mean, Sigma, pis, n=10) {
   has_sig11 <- names(mean) %in% "sig11"
   has_sig22 <- names(mean) %in% "sig22"
   has_sig11_sig22 <- names(mean) %in% c("sig11","sig22")
+
+  sample_component <- function(sigma, lower, use_trunc) {
+    if (use_trunc) {
+      return(tmvtnorm::rtmvnorm(1, sigma = sigma, lower = lower))
+    } else {
+      return(mvtnorm::rmvnorm(1, sigma = sigma))
+    }
+  }
+
   for(i in 1:n) {
     dat <- numeric(length(mean))
     names(dat) <- names(mean)
     if(rng[i] <= pis[1]) {
       dat <- mvtnorm::rmvnorm(1,sigma = Sigma)
     }
-    else if(rng[i] > pis[1] && rng[i] <= pis[2]) {
-      lower = ifelse(has_sig22[!has_sig11], 0, -Inf)
-      # truncnorm_moments <- tmvtnorm::mtmvnorm(mean = mean[!has_sig11],
-      #                                         sigma = Sigma[!has_sig11,!has_sig11],
-      #                                         lower = lower)
-      #
-      # dat.temp <- tmvtnorm::rtmvnorm(1,sigma=truncnorm_moments$tvar,lower=lower)
-      dat.temp <- tmvtnorm::rtmvnorm(1,sigma=Sigma[!has_sig11,!has_sig11],lower=lower)
-      dat[!has_sig11] <- dat.temp
+    else if(rng[i] <= pis[2]) {
+      idx <- !has_sig11
+      lower = ifelse(has_sig22[idx], 0, -Inf)
+      dat.temp <- sample_component(Sigma[idx,idx, drop=F],lower, truncated)
+      dat[idx] <- dat.temp
     }
-    else if(rng[i] > pis[2] && rng[i] <= pis[3]) {
-      lower = ifelse(has_sig11[!has_sig22], 0, -Inf)
-      # truncnorm_moments <- tmvtnorm::mtmvnorm(mean = mean[!has_sig22],
-      #                                         sigma = Sigma[!has_sig22,!has_sig22],
-      #                                         lower = lower)
-      # dat.temp <- tmvtnorm::rtmvnorm(1,sigma=truncnorm_moments$tvar,lower=lower)
-      dat.temp <- tmvtnorm::rtmvnorm(1,sigma=Sigma[!has_sig22,!has_sig22],lower=lower)
+    else if(rng[i] <= pis[3]) {
+      idx <- !has_sig22
+      lower = ifelse(has_sig11[idx], 0, -Inf)
+      dat.temp <- sample_component(Sigma[idx,idx, drop=F],lower, truncated)
       dat[!has_sig22] <- dat.temp
     }
     else {
-      lower <- ifelse(has_sig11_sig22[!has_sig11_sig22], 0, -Inf)
-      # dat.temp <- tmvtnorm::rtmvnorm(1,sigma=Sigma[!has_sig11_sig22, !has_sig11_sig22],
-      #                                lower=lower)
-      dat.temp <- mvtnorm::rmvnorm(1,sigma=Sigma[!has_sig11_sig22, !has_sig11_sig22])
-      dat[!has_sig11_sig22] <- dat.temp
+      idx <- !has_sig11_sig22
+      dat.temp <- mvtnorm::rmvnorm(1,sigma=Sigma[idx, idx])
+      dat[idx] <- dat.temp
     }
     result[i,] <- dat
   }
@@ -152,13 +152,14 @@ rmixtnorm <- function(mean, Sigma, pis, n=10) {
 #' @param grad A numeric vector representing the gradient, used to transform the sampled mixture data.
 #' @param alpha A numeric value specifying the significance level for the confidence interval (default is 0.05, which corresponds to a 95% confidence interval).
 #' @param n An integer specifying the number of samples to draw from the mixture distribution (default is 100).
+#' @param truncated Logical. Whether truncation should be used.
 #'
 #' @return A numeric vector of length 2 containing the lower and upper quantiles for the confidence interval, calculated as \code{c(alpha/2, 1 - alpha/2)}.
 #'
 #' @export
 #'
-qmixtnorm <- function(mean, Sigma, pis, grad, alpha=0.05, n=100) {
-  mixtnorm <- rmixtnorm(mean=mean, Sigma=Sigma, pis=pis, n=n)
+qmixtnorm <- function(mean, Sigma, pis, grad, alpha=0.05, n=100, truncated=TRUE) {
+  mixtnorm <- rmixtnorm(mean=mean, Sigma=Sigma, pis=pis, n=n, truncated=truncated)
   rvpc <- mixtnorm %*% grad
   stats::quantile(rvpc, c(alpha/2, 1-alpha/2))
 }
@@ -238,11 +239,12 @@ boostrap_vpc_ci <- function(vpcObj, iter = 100, num_cores = 4, alpha = 0.05) {
 #' @param vpc.value Numeric. The VPC value for which the confidence interval is to be computed.
 #' @param alpha Numeric. The significance level for the confidence interval (default is 0.05).
 #' @param n Integer. Number of samples to draw for quantile estimation (default is 1000).
+#' @param truncated Logical. Whether truncation should be used.
 #'
 #' @return A numeric vector of length 2 containing the lower and upper bounds of the confidence interval.
 #' @export
 #'
-adjustedc_mixture_ci <- function(vpcObj,vpc.value,alpha = 0.05, n = 1000) {
+adjustedc_mixture_ci <- function(vpcObj, vpc.value, alpha=0.05, n=1000, truncated=TRUE) {
   # Extract fitted model from vpcObj
   fitObj <- vpcObj$modObj
 
@@ -263,8 +265,7 @@ adjustedc_mixture_ci <- function(vpcObj,vpc.value,alpha = 0.05, n = 1000) {
 
     # Compute the confidence interval using mixture normal quantiles
     qmix <- qmixtnorm(mean=mean, Sigma=Sigma, pis=pis,
-                      grad=grad, alpha=alpha, n=n) #/ sqrt(n.sample)
-    # ci <- qmixtnorm(mean = mean, Sigma = Sigma, pis = pis, grad = grad, alpha = alpha, n = n)
+                      grad=grad, alpha=alpha, n=n, truncated=truncated)
     ci <- c(vpc.value - qmix[2], vpc.value - qmix[1])
     return(ci)
   }
@@ -284,13 +285,8 @@ adjustedc_mixture_ci <- function(vpcObj,vpc.value,alpha = 0.05, n = 1000) {
 #' @export
 #'
 classical_vpc_ci <- function(vpcObj, vpc.value, alpha = 0.05) {
-  # Calculate standard error of the VPC
   stderr.vpc <- sqrt(stats::vcov(vpcObj))
-
-  # Determine critical value based on significance level
   crit.val <- stats::qnorm(1 - alpha / 2)
-
-  # Compute the confidence interval
   ci <- c(vpc.value - crit.val * stderr.vpc, vpc.value + crit.val * stderr.vpc)
 
   return(ci)
@@ -326,7 +322,8 @@ vcov.vpcObj <- function(object, ...) {
 #' @param type Character. Specifies the type of confidence interval to compute. Options include:
 #'   - "classical": Based on the standard normal distribution.
 #'   - "bootstrap": Using a parametric bootstrap method.
-#'   - "adjusted": Using the Delta Method, adjusted for boundary conditions.
+#'   - "adjusted.s": Using the Delta Method, adjusted for boundary conditions (Self & Liang)
+#'   - "adjusted.c": Using the Delta Method, adjusted for boundary conditions (Chant)
 #' @param iter Integer. The number of bootstrap iterations to perform if `type = "bootstrap"`. Default is 100.
 #' @param num_cores Integer. The number of cores to use for parallel computation in the bootstrap method. Default is 1.
 #' @param verbose Logical. If `TRUE`, additional information is provided regarding model convergence and positive definiteness of the Hessian matrix.
@@ -336,7 +333,8 @@ vcov.vpcObj <- function(object, ...) {
 #'
 #' @export
 confint.vpcObj <- function(vpcObj, alpha = 0.05,
-                           type = c("classical", "bootstrap", "adjusted"),
+                           type = c("classical", "bootstrap",
+                                    "adjusted.s", "adjusted.c"),
                            num_cores = 1, iter=100,verbose = FALSE) {
   type <- match.arg(type)
   vpc.value <- vpcObj$vpc
@@ -345,11 +343,15 @@ confint.vpcObj <- function(vpcObj, alpha = 0.05,
     ci <- classical_vpc_ci(vpcObj, vpc.value, alpha = alpha)
   } else if (type == "bootstrap") {
     ci <- boostrap_vpc_ci(vpcObj, iter = iter, num_cores = 4, alpha = alpha)
-  } else if (type == "adjusted") {
+  } else if (type == "adjusted.s") {
     ci <- adjustedc_mixture_ci(vpcObj, vpc.value, alpha = alpha, n = 1000)
+  } else if (type == "adjusted.c") {
+    ci <- adjustedc_mixture_ci(vpcObj, vpc.value, alpha = alpha, n = 1000,
+                               truncated = FALSE)
   }
 
   result <- c(Lower = ci[1], VPC = vpc.value, Upper = ci[2])
+  names(result) <- c("Lower", "VPC", "Upper")
 
   if (verbose) {
     convergence.code <- vpcObj$modObj$modObj$fit$convergence == 0
@@ -371,7 +373,8 @@ confint.vpcObj <- function(vpcObj, alpha = 0.05,
 #' @param type Character. Specifies the type of confidence interval to compute. Options include:
 #'   - "classical": Based on the standard normal distribution.
 #'   - "bootstrap": Using a parametric bootstrap method.
-#'   - "adjusted": Using the Delta Method, adjusted for boundary conditions.
+#'   - "adjusted.s": Using the Delta Method, adjusted for boundary conditions (Self & Liang)
+#'   - "adjusted.c": Using the Delta Method, adjusted for boundary conditions (Chant)
 #' @param iter Integer. The number of bootstrap iterations to perform (for bootstrap type). Default is 100.
 #' @param num_cores Integer. The number of cores to use for parallel computation in the bootstrap method. Default is 1.
 #' @param verbose Logical. If `TRUE`, provides additional information about model convergence and the Hessian matrix's positive definiteness.
@@ -381,7 +384,8 @@ confint.vpcObj <- function(vpcObj, alpha = 0.05,
 #'
 #' @export
 confint.VpcObj <- function(VpcObj, alpha = 0.05,
-                           type = c("classical", "bootstrap", "adjusted"),
+                           type = c("classical", "bootstrap",
+                                    "adjusted.s", "adjusted.c"),
                            iter = 100, num_cores = 1,
                            verbose = FALSE) {
   type <- match.arg(type)

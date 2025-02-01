@@ -4,7 +4,13 @@
 \alias{adjustedc_mixture_ci}
 \title{Confidence Interval Computation for VPC using Mixture Normal Quantiles}
 \usage{
-adjustedc_mixture_ci(vpcObj, vpc.value, alpha = 0.05, n = 1000)
+adjustedc_mixture_ci(
+  vpcObj,
+  vpc.value,
+  alpha = 0.05,
+  n = 1000,
+  truncated = TRUE
+)
 }
 \arguments{
 \item{vpcObj}{An object containing the fitted model and additional VPC-related information.}
@@ -14,6 +20,8 @@ adjustedc_mixture_ci(vpcObj, vpc.value, alpha = 0.05, n = 1000)
 \item{alpha}{Numeric. The significance level for the confidence interval (default is 0.05).}
 
 \item{n}{Integer. Number of samples to draw for quantile estimation (default is 1000).}
+
+\item{truncated}{Logical. Whether truncation should be used.}
 }
 \value{
 A numeric vector of length 2 containing the lower and upper bounds of the confidence interval.

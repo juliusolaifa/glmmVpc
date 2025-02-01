@@ -4,7 +4,7 @@
 \alias{qmixtnorm}
 \title{Quantile Computation for a Mixture of Multivariate & Truncated Normals}
 \usage{
-qmixtnorm(mean, Sigma, pis, grad, alpha = 0.05, n = 100)
+qmixtnorm(mean, Sigma, pis, grad, alpha = 0.05, n = 100, truncated = TRUE)
 }
 \arguments{
 \item{mean}{A numeric vector representing the mean of each component in the multivariate normal distribution.}
@@ -18,6 +18,8 @@ qmixtnorm(mean, Sigma, pis, grad, alpha = 0.05, n = 100)
 \item{alpha}{A numeric value specifying the significance level for the confidence interval (default is 0.05, which corresponds to a 95\% confidence interval).}
 
 \item{n}{An integer specifying the number of samples to draw from the mixture distribution (default is 100).}
+
+\item{truncated}{Logical. Whether truncation should be used.}
 }
 \value{
 A numeric vector of length 2 containing the lower and upper quantiles for the confidence interval, calculated as \code{c(alpha/2, 1 - alpha/2)}.
