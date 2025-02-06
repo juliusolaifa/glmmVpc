@@ -240,11 +240,14 @@ boostrap_vpc_ci <- function(vpcObj, iter = 100, num_cores = 4, alpha = 0.05) {
 #' @param alpha Numeric. The significance level for the confidence interval (default is 0.05).
 #' @param n Integer. Number of samples to draw for quantile estimation (default is 1000).
 #' @param truncated Logical. Whether truncation should be used.
+#' @param prob.type Method use in calculating the mixture weights
 #'
 #' @return A numeric vector of length 2 containing the lower and upper bounds of the confidence interval.
 #' @export
 #'
-adjustedc_mixture_ci <- function(vpcObj, vpc.value, alpha=0.05, n=1000, truncated=TRUE) {
+adjustedc_mixture_ci <- function(vpcObj, vpc.value, alpha=0.05, n=1000,
+                                 truncated=TRUE,
+                                 prob.type="self") {
   # Extract fitted model from vpcObj
   fitObj <- vpcObj$modObj
 
@@ -257,7 +260,7 @@ adjustedc_mixture_ci <- function(vpcObj, vpc.value, alpha=0.05, n=1000, truncate
   if(!fitObj$modObj$sdr$pdHess) {
     return(c(NA,NA))
   }else{
-    p11 <- pr11(fitObj)
+    p11 <- pr11(fitObj, prob.type)
     pis <- c(p11, 0.25, 0.25, 0.5 - p11)
 
     # Get gradient vector for transformation

@@ -82,6 +82,33 @@ schur_complement <- function(A, ind_lower) {
   return(A22 - A21 %*% A11.inv %*% A12)
 }
 
+
+#' Calculate mixing weight using Information Matrix Correlation
+#'
+#' This function computes mixing weight based on the correlation of parameters in the information matrix
+#' of a model, using different methods including self-derived, Zhang, Julius, or all approaches.
+#'
+#' @param modObj A model object containing a Sigma matrix and for which vcov can be computed.
+#' @param type A character string specifying the method to compute the p-value. Options are "self", "zhang", "julius", or "all". Default is "self".
+#'
+#' @return A numeric probability value or NULL if modObj$Sigma is not a matrix.
+#'
+#' @details
+#' The function first checks if modObj$Sigma is a matrix. If not, it returns NULL.
+#' It calculates the information matrix as the inverse of the variance-covariance matrix from vcov(modObj).
+#'
+#' - For type = "self", the correlation coefficient (rho) is derived directly from the off-diagonal and diagonal elements of the information matrix.
+#' - For type = "zhang", "julius", or "all", the Schur complement of the information matrix subset is used to compute rho.
+#'
+#' The probability is computed as acos(rho) / (2 * pi), representing the angle of correlation in radians scaled to a probability.
+#'
+#' @examples
+#' \dontrun{
+#' # Assuming mod is a fitted model object
+#' p_self <- pr11(mod, type = "self")
+#' p_zhang <- pr11(mod, type = "zhang")
+#' }
+#' @export
 pr11 <- function(modObj, type = c("self", "zhang", "julius", "all")) {
   type <- match.arg(type)
   if (!inherits(modObj$Sigma, "matrix")) return(NULL)

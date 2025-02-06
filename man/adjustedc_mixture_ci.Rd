@@ -9,7 +9,8 @@ adjustedc_mixture_ci(
   vpc.value,
   alpha = 0.05,
   n = 1000,
-  truncated = TRUE
+  truncated = TRUE,
+  prob.type = "self"
 )
 }
 \arguments{
@@ -22,6 +23,8 @@ adjustedc_mixture_ci(
 \item{n}{Integer. Number of samples to draw for quantile estimation (default is 1000).}
 
 \item{truncated}{Logical. Whether truncation should be used.}
+
+\item{prob.type}{Method use in calculating the mixture weights}
 }
 \value{
 A numeric vector of length 2 containing the lower and upper bounds of the confidence interval.
