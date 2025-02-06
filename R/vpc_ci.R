@@ -330,6 +330,7 @@ vcov.vpcObj <- function(object, ...) {
 #' @param iter Integer. The number of bootstrap iterations to perform if `type = "bootstrap"`. Default is 100.
 #' @param num_cores Integer. The number of cores to use for parallel computation in the bootstrap method. Default is 1.
 #' @param verbose Logical. If `TRUE`, additional information is provided regarding model convergence and positive definiteness of the Hessian matrix.
+#' @param prob.type Method use in calculating the mixture weights for adjusted method
 #'
 #' @return A named vector with three elements: the lower bound, the VPC estimate, and the upper bound of the confidence interval.
 #'   When `verbose = TRUE`, additional diagnostic details on convergence and the Hessian may be included. Returns `NA` if the model did not converge or if the Hessian is not positive definite.
@@ -338,7 +339,8 @@ vcov.vpcObj <- function(object, ...) {
 confint.vpcObj <- function(vpcObj, alpha = 0.05,
                            type = c("classical", "bootstrap",
                                     "adjusted.s", "adjusted.c"),
-                           num_cores = 1, iter=100,verbose = FALSE) {
+                           num_cores = 1, iter=100,verbose = FALSE,
+                           prob.type="self") {
   type <- match.arg(type)
   vpc.value <- vpcObj$vpc
 
@@ -350,7 +352,7 @@ confint.vpcObj <- function(vpcObj, alpha = 0.05,
     ci <- adjustedc_mixture_ci(vpcObj, vpc.value, alpha = alpha, n = 1000)
   } else if (type == "adjusted.c") {
     ci <- adjustedc_mixture_ci(vpcObj, vpc.value, alpha = alpha, n = 1000,
-                               truncated = FALSE)
+                               truncated = FALSE, prob.type = prob.type)
   }
 
   result <- c(Lower = ci[1], VPC = vpc.value, Upper = ci[2])
@@ -381,6 +383,7 @@ confint.vpcObj <- function(vpcObj, alpha = 0.05,
 #' @param iter Integer. The number of bootstrap iterations to perform (for bootstrap type). Default is 100.
 #' @param num_cores Integer. The number of cores to use for parallel computation in the bootstrap method. Default is 1.
 #' @param verbose Logical. If `TRUE`, provides additional information about model convergence and the Hessian matrix's positive definiteness.
+#' @param prob.type Method use in calculating the mixture weights for adjusted method
 #'
 #' @return A vector with three elements: Lower bound, the VPC estimate, and the upper bound of the confidence interval.
 #'   Additional information is included if `verbose = TRUE`. Returns `NA` if the model did not converge or if the Hessian is not positive definite.
@@ -390,12 +393,13 @@ confint.VpcObj <- function(VpcObj, alpha = 0.05,
                            type = c("classical", "bootstrap",
                                     "adjusted.s", "adjusted.c"),
                            iter = 100, num_cores = 1,
-                           verbose = FALSE) {
+                           verbose = FALSE, prob.type = "self") {
   type <- match.arg(type)
   t(sapply(VpcObj, function(vpcObj) stats::confint(vpcObj, alpha=alpha,
                                                    type=type, iter=iter,
                                                    num_cores=num_cores,
-                                                   verbose=verbose)))
+                                                   verbose=verbose,
+                                                   prob.type=prob.type)))
 }
 
 

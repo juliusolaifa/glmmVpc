@@ -10,7 +10,8 @@
   type = c("classical", "bootstrap", "adjusted.s", "adjusted.c"),
   iter = 100,
   num_cores = 1,
-  verbose = FALSE
+  verbose = FALSE,
+  prob.type = "self"
 )
 }
 \arguments{
@@ -31,6 +32,8 @@
 \item{num_cores}{Integer. The number of cores to use for parallel computation in the bootstrap method. Default is 1.}
 
 \item{verbose}{Logical. If \code{TRUE}, provides additional information about model convergence and the Hessian matrix's positive definiteness.}
+
+\item{prob.type}{Method use in calculating the mixture weights for adjusted method}
 }
 \value{
 A vector with three elements: Lower bound, the VPC estimate, and the upper bound of the confidence interval.
