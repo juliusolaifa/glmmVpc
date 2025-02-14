@@ -1,3 +1,35 @@
+#' Compute Gradient for Variance Partition Coefficient (VPC) Engine
+#'
+#' This function computes the gradient of the Variance Partition Coefficient (VPC)
+#' for different families of distributions, such as Negative Binomial and Tweedie.
+#' The gradient can be computed either symbolically or numerically.
+#'
+#' @param beta A numeric vector of coefficients for the mean function.
+#' @param Sigma A numeric matrix representing the covariance structure.
+#' @param phi A numeric value representing the dispersion parameter.
+#' @param family A character string specifying the family of distributions.
+#'   Currently supported families are "negative_binomial" and "tweedie".
+#' @param x A numeric vector or matrix of covariates. Default is `NULL`.
+#' @param power A numeric value representing the power parameter for the Tweedie family.
+#'   Required if `family` is "tweedie". Default is `NULL`.
+#' @param method A character string specifying the method to compute the gradient.
+#'   Supported methods are "symbolic" and "numerical".
+#'
+#' @return A numeric vector containing the gradient of the VPC with respect to the parameters.
+#'
+#' @examples
+#' # Example for Negative Binomial family
+#' beta <- c(1, 2)
+#' Sigma <- matrix(c(1, 0.5, 0.5, 1), nrow = 2)
+#' phi <- 1.5
+#' x <- 1
+#' gradient_vpc_engine(beta, Sigma, phi, family = "negative_binomial", x=1,method = "symbolic")
+#'
+#' # Example for Tweedie family
+#' power <- 1.5
+#' gradient_vpc_engine(beta, Sigma, phi, family = "tweedie", x=1, power = power, method = "numerical")
+#'
+#' @export
 gradient_vpc_engine <- function(beta, Sigma, phi, family, x=NULL, power = NULL, method) {
 
   if (family == "tweedie" && is.null(power)) {
