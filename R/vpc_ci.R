@@ -104,6 +104,7 @@ gradient_vpc_engine <- function(beta, Sigma, phi, family, x=NULL, power = NULL, 
   return(gradvpc)
 }
 
+
 gradients <- function(vpcObj, method="numerical") {
   modObj <- vpcObj$modObj
   beta <- modObj$beta
