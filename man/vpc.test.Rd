@@ -9,19 +9,23 @@
 \method{vpc.test}{glmmfit}(
   fitObj,
   null_formula,
-  type = c("classical", "self", "zhang", "julius", "all")
+  type = c("classical", "self", "zhang", "julius", "all"),
+  ...
 )
 
 \method{vpc.test}{Glmmfits}(
   fitObj,
   null_formula,
-  type = c("classical", "self", "zhang", "julius", "all")
+  type = c("classical", "self", "zhang", "julius", "all"),
+  num_cores = 1,
+  ...
 )
 
 vpc.test(
   fitObj,
   null_formula,
-  type = c("classical", "self", "zhang", "julius", "all")
+  type = c("classical", "self", "zhang", "julius", "all"),
+  ...
 )
 }
 \arguments{
@@ -30,7 +34,13 @@ of class \code{glmmfits} for which the VPC is to be calculated.}
 
 \item{null_formula}{A formula to specify a null model for comparison.}
 
-\item{type}{method to chalculate the chi_square distribution.}
+\item{type}{Character string indicating the method used to calculate the chi-square distribution.
+Options are \code{"classical"}, \code{"self"}, \code{"zhang"}, \code{"julius"}, or \code{"all"}.}
+
+\item{...}{Additional arguments passed to specific methods.}
+
+\item{num_cores}{(numeric) Number of cores to use for parallel processing.
+Only applicable when \code{fitObj} is a list of fitted models (i.e., class \code{glmmfits}).}
 }
 \value{
 A numeric value or a list representing the calculated VPC for the given model,

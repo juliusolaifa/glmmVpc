@@ -427,7 +427,7 @@ vcov.vpcObj <- function(object, ...) {
 confint.vpcObj <- function(vpcObj, alpha = 0.05,
                            type = c("classical", "bootstrap",
                                     "adjusted.s", "adjusted.c"),
-                           num_cores = 1, iter=100,verbose = FALSE,
+                           num_cores = 4, iter=100,verbose = FALSE,
                            prob.type="self") {
   type <- match.arg(type)
   vpc.value <- vpcObj$vpc
@@ -435,7 +435,7 @@ confint.vpcObj <- function(vpcObj, alpha = 0.05,
   if (type == "classical") {
     ci <- classical_vpc_ci(vpcObj, vpc.value, alpha = alpha)
   } else if (type == "bootstrap") {
-    ci <- boostrap_vpc_ci(vpcObj, iter = iter, num_cores = 4, alpha = alpha)
+    ci <- boostrap_vpc_ci(vpcObj, iter = iter, num_cores = num_cores, alpha = alpha)
   } else if (type == "adjusted.s") {
     ci <- adjustedc_mixture_ci(vpcObj, vpc.value, alpha = alpha, n = 1000)
   } else if (type == "adjusted.c") {
@@ -480,7 +480,7 @@ confint.vpcObj <- function(vpcObj, alpha = 0.05,
 confint.VpcObj <- function(VpcObj, alpha = 0.05,
                            type = c("classical", "bootstrap",
                                     "adjusted.s", "adjusted.c"),
-                           iter = 100, num_cores = 1,
+                           iter = 100, num_cores = 4,
                            verbose = FALSE, prob.type = "self") {
   type <- match.arg(type)
   t(sapply(VpcObj, function(vpcObj) stats::confint(vpcObj, alpha=alpha,

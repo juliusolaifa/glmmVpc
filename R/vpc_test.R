@@ -1,8 +1,11 @@
 #' @export
 #' @method vpc.test glmmfit
 #' @rdname vpc.test
-vpc.test.glmmfit <- function(fitObj, null_formula, type=c("classical", "self",
-                                                          "zhang", "julius","all")) {
+vpc.test.glmmfit <- function(fitObj, null_formula, type=c("classical",
+                                                          "self",
+                                                          "zhang",
+                                                          "julius",
+                                                          "all"), ...) {
 
   type <- match.arg(type)
   if(inherits(fitObj, "vpcObj")) {
@@ -47,17 +50,24 @@ vpc.test.glmmfit <- function(fitObj, null_formula, type=c("classical", "self",
 
 #' @export
 #' @method vpc.test vpcObj
-vpc.test.vpcObj <- function(fitObj, null_formula, type=c("classical", "self",
-                                                         "zhang", "julius", "all")) {
-  vpc.test.glmmfit(fitObj, null_formula, type)
+vpc.test.vpcObj <- function(fitObj, null_formula, type=c("classical",
+                                                         "self",
+                                                         "zhang",
+                                                         "julius",
+                                                         "all"), ...) {
+  vpc.test.glmmfit(fitObj, null_formula, type, ...)
 }
 
 
 #' @export
 #' @method vpc.test Glmmfits
 #' @rdname vpc.test
-vpc.test.Glmmfits <- function(fitObj, null_formula, type=c("classical", "self",
-                                                           "zhang","julius", "all")) {
+vpc.test.Glmmfits <- function(fitObj, null_formula,
+                              type=c("classical",
+                                     "self",
+                                     "zhang",
+                                     "julius",
+                                     "all"), num_cores = 1, ...) {
   n <- length(fitObj)
   type <- match.arg(type)
   results <- data.frame(t(pbapply::pbsapply(seq_along(fitObj), function(i) {
@@ -69,7 +79,7 @@ vpc.test.Glmmfits <- function(fitObj, null_formula, type=c("classical", "self",
     # formula_string <- paste(paste0(deparse(null_formula[[2]]),i), "~", deparse(null_formula[[3]]))
     # dynamic_formula <- stats::as.formula(formula_string)
     vpc.test(fitObj = fitObj[[i]], null_formula = dynamic_formula, type=type)
-  })))
+  }, cl = num_cores)))
   #results$p_value <- as.numeric(results$p_value)
   #results$LR_stat <- as.numeric(results$LR_stat)
   return(results)
@@ -77,9 +87,12 @@ vpc.test.Glmmfits <- function(fitObj, null_formula, type=c("classical", "self",
 
 #' @export
 #' @method vpc.test VpcObj
-vpc.test.VpcObj <- function(fitObj, null_formula, type=c("classical", "self",
-                                                         "zhang", "julius", "all")) {
-  vpc.test.Glmmfits(fitObj, null_formula, type)
+vpc.test.VpcObj <- function(fitObj, null_formula, type=c("classical",
+                                                         "self",
+                                                         "zhang",
+                                                         "julius",
+                                                         "all"), ...) {
+  vpc.test.Glmmfits(fitObj, null_formula, type, ...)
 }
 
 
@@ -88,16 +101,23 @@ vpc.test.VpcObj <- function(fitObj, null_formula, type=c("classical", "self",
 #' This function calculates the Variance Partition Coefficient (VPC) for a fitted model object.
 #' The specific method used will depend on the class of the provided model.
 #'
-#' @param fitObj The fitted model object of class `glmmfit` or a list of fitted model objects
-#' of class `glmmfits` for which the VPC is to be calculated.
+#' @param fitObj The fitted model object of class \code{glmmfit} or a list of fitted model objects
+#' of class \code{glmmfits} for which the VPC is to be calculated.
 #' @param null_formula A formula to specify a null model for comparison.
-#' @param type method to chalculate the chi_square distribution.
+#' @param type Character string indicating the method used to calculate the chi-square distribution.
+#' Options are \code{"classical"}, \code{"self"}, \code{"zhang"}, \code{"julius"}, or \code{"all"}.
+#' @param num_cores (numeric) Number of cores to use for parallel processing.
+#' Only applicable when \code{fitObj} is a list of fitted models (i.e., class \code{glmmfits}).
+#' @param ... Additional arguments passed to specific methods.
 #'
 #' @return A numeric value or a list representing the calculated VPC for the given model,
 #' including additional details if applicable.
 #' @export
-vpc.test <- function(fitObj, null_formula, type=c("classical", "self",
-                                                  "zhang","julius","all")) {
+vpc.test <- function(fitObj, null_formula, type=c("classical",
+                                                  "self",
+                                                  "zhang",
+                                                  "julius",
+                                                  "all"), ...) {
   UseMethod("vpc.test")
 }
 
