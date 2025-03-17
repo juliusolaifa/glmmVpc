@@ -9,7 +9,7 @@
   alpha = 0.05,
   type = c("classical", "bootstrap", "adjusted.s", "adjusted.c"),
   iter = 100,
-  num_cores = 1,
+  num_cores = 4,
   verbose = FALSE,
   prob.type = "self"
 )

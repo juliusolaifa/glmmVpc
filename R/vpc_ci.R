@@ -181,50 +181,107 @@ gradients <- function(vpcObj, method="numerical") {
 #' }
 #'
 #' @export
-rmixtnorm <- function(mean, Sigma, pis, n=10, truncated = TRUE) {
+rmixtnorm <- function(mean, Sigma, pis, n=10, truncated=TRUE) {
+  # Generate n uniform samples for selecting mixture components
   rng <- stats::runif(n)
   pis <- cumsum(pis)
-  result <- matrix(NA,nrow=n, ncol = length(mean))
-  colnames(result) <- names(mean)
+
+  # Identify truncation conditions
   has_sig11 <- names(mean) %in% "sig11"
   has_sig22 <- names(mean) %in% "sig22"
-  has_sig11_sig22 <- names(mean) %in% c("sig11","sig22")
+  has_sig11_sig22 <- names(mean) %in% c("sig11", "sig22")
 
-  sample_component <- function(sigma, lower, use_trunc) {
-    if (use_trunc) {
-      return(tmvtnorm::rtmvnorm(1, sigma = sigma, lower = lower))
+  # Determine which component each sample belongs to
+  idxs <- findInterval(rng, pis) + 1  # Assigns component indices (1,2,3,4)
+
+  # Pre-allocate result matrix
+  result <- matrix(0, nrow=n, ncol=length(mean))
+  colnames(result) <- names(mean)
+
+  # Sample from different components **in batches** (instead of looping)
+
+  ## Component 1: No truncation, full MVN sample
+  mask1 <- (idxs == 1)
+  result[mask1, ] <- mvtnorm::rmvnorm(sum(mask1), sigma=Sigma)
+
+  ## Component 2: Truncate dimensions **not labeled** "sig11"
+  mask2 <- (idxs == 2)
+  if (any(mask2)) {
+    idx <- !has_sig11
+    lower <- ifelse(has_sig22[idx], 0, -Inf)
+    result[mask2, idx] <- if (truncated) {
+      tmvtnorm::rtmvnorm(sum(mask2), sigma=Sigma[idx, idx, drop=FALSE], lower=lower)
     } else {
-      return(mvtnorm::rmvnorm(1, sigma = sigma))
+      mvtnorm::rmvnorm(sum(mask2), sigma=Sigma[idx, idx, drop=FALSE])
     }
   }
 
-  for(i in 1:n) {
-    dat <- numeric(length(mean))
-    names(dat) <- names(mean)
-    if(rng[i] <= pis[1]) {
-      dat <- mvtnorm::rmvnorm(1,sigma = Sigma)
+  ## Component 3: Truncate dimensions **not labeled** "sig22"
+  mask3 <- (idxs == 3)
+  if (any(mask3)) {
+    idx <- !has_sig22
+    lower <- ifelse(has_sig11[idx], 0, -Inf)
+    result[mask3, idx] <- if (truncated) {
+      tmvtnorm::rtmvnorm(sum(mask3), sigma=Sigma[idx, idx, drop=FALSE], lower=lower)
+    } else {
+      mvtnorm::rmvnorm(sum(mask3), sigma=Sigma[idx, idx, drop=FALSE])
     }
-    else if(rng[i] <= pis[2]) {
-      idx <- !has_sig11
-      lower = ifelse(has_sig22[idx], 0, -Inf)
-      dat.temp <- sample_component(Sigma[idx,idx, drop=F],lower, truncated)
-      dat[idx] <- dat.temp
-    }
-    else if(rng[i] <= pis[3]) {
-      idx <- !has_sig22
-      lower = ifelse(has_sig11[idx], 0, -Inf)
-      dat.temp <- sample_component(Sigma[idx,idx, drop=F],lower, truncated)
-      dat[!has_sig22] <- dat.temp
-    }
-    else {
-      idx <- !has_sig11_sig22
-      dat.temp <- mvtnorm::rmvnorm(1,sigma=Sigma[idx, idx])
-      dat[idx] <- dat.temp
-    }
-    result[i,] <- dat
   }
+
+  ## Component 4: No truncation, subset of MVN
+  mask4 <- (idxs == 4)
+  if (any(mask4)) {
+    idx <- !has_sig11_sig22
+    result[mask4, idx] <- mvtnorm::rmvnorm(sum(mask4), sigma=Sigma[idx, idx, drop=FALSE])
+  }
+
   return(result)
 }
+
+# rmixtnorm <- function(mean, Sigma, pis, n=10, truncated = TRUE) {
+#   rng <- stats::runif(n)
+#   pis <- cumsum(pis)
+#   result <- matrix(NA,nrow=n, ncol = length(mean))
+#   colnames(result) <- names(mean)
+#   has_sig11 <- names(mean) %in% "sig11"
+#   has_sig22 <- names(mean) %in% "sig22"
+#   has_sig11_sig22 <- names(mean) %in% c("sig11","sig22")
+#
+#   sample_component <- function(sigma, lower, use_trunc) {
+#     if (use_trunc) {
+#       return(tmvtnorm::rtmvnorm(1, sigma = sigma, lower = lower))
+#     } else {
+#       return(mvtnorm::rmvnorm(1, sigma = sigma))
+#     }
+#   }
+#
+#   for(i in 1:n) {
+#     dat <- numeric(length(mean))
+#     names(dat) <- names(mean)
+#     if(rng[i] <= pis[1]) {
+#       dat <- mvtnorm::rmvnorm(1,sigma = Sigma)
+#     }
+#     else if(rng[i] <= pis[2]) {
+#       idx <- !has_sig11
+#       lower = ifelse(has_sig22[idx], 0, -Inf)
+#       dat.temp <- sample_component(Sigma[idx,idx, drop=F],lower, truncated)
+#       dat[idx] <- dat.temp
+#     }
+#     else if(rng[i] <= pis[3]) {
+#       idx <- !has_sig22
+#       lower = ifelse(has_sig11[idx], 0, -Inf)
+#       dat.temp <- sample_component(Sigma[idx,idx, drop=F],lower, truncated)
+#       dat[!has_sig22] <- dat.temp
+#     }
+#     else {
+#       idx <- !has_sig11_sig22
+#       dat.temp <- mvtnorm::rmvnorm(1,sigma=Sigma[idx, idx])
+#       dat[idx] <- dat.temp
+#     }
+#     result[i,] <- dat
+#   }
+#   return(result)
+# }
 
 #' Quantile Computation for a Mixture of Multivariate & Truncated Normals
 #'
