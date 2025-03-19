@@ -333,6 +333,7 @@ boostrap_vpc_ci <- function(vpcObj, iter = 100, num_cores = 4, alpha = 0.05) {
   # Check for family-specific parameters
   if (family == "negative_binomial") {
     theta <- params[grep("theta", names(params))]
+    phi <- NULL
   } else {
     phi <- params[grep("phi", names(params))]
     power <- params[grep("power", names(params))]
