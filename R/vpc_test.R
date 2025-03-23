@@ -172,7 +172,7 @@ adj_chisq <- function(test_stat, config, ...) {
   calculate_p_value <- function(q, r, s, test_stat) {
     caseI <- q == 0 && s == 0
     caseII <- q == 1 && r == 0 && s == 0
-    caseIII <- q == 1 && r == 1 && s == 0
+    caseIII <- q == 1 && r >= 1 && s == 0
     caseIV <- q == 2
 
 
