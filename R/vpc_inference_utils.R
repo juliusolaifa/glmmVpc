@@ -126,6 +126,10 @@ pr11 <- function(modObj, type = c("self", "zhang", "julius", "all")) {
     rho <- sch_comp[1,2]/(sqrt(sch_comp[1,1]*sch_comp[2,2]))
   }
   p <- acos(rho)/(2*pi)
+  if(is.na(p)) {
+    #message("using ")
+    p <- 0.25
+  }
   return(p)
 }
 
