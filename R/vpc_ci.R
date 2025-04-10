@@ -105,6 +105,38 @@ gradient_vpc_engine <- function(beta, Sigma, phi, family, x=NULL, power = NULL, 
 }
 
 
+#' Compute Gradients for a VPC Model
+#'
+#' This function computes gradients for a given VPC model. It extracts essential
+#' parameters from the model object included in \code{vpcObj} and then passes them to the
+#' internal function \code{gradient_vpc_engine} for gradient computation.
+#'
+#' @param vpcObj A list object containing model and data information. It must include:
+#'   \describe{
+#'     \item{\code{modObj}}{A list with elements \code{beta} (the parameter vector), \code{Sigma}
+#'       (covariance matrix), \code{phi} (dispersion parameter), \code{family} (distribution family),
+#'       and optionally \code{power} (required when \code{family == "tweedie"}).}
+#'     \item{\code{x}}{Predictor variables or design matrix used in the model.}
+#'   }
+#' @param method A character string specifying the gradient calculation method.
+#'   The default is \code{"numerical"}.
+#'
+#' @return The output of \code{gradient_vpc_engine}, which is the gradient evaluated for the provided
+#' model parameters.
+#'
+#' @details The function checks if the distribution family is \code{"tweedie"}. In that case, it ensures that
+#' the \code{power} parameter is provided in \code{modObj}. If \code{power} is \code{NULL}, the function stops
+#' and raises an error.
+#'
+#' @seealso \code{\link{gradient_vpc_engine}}
+#'
+#' @examples
+#' \dontrun{
+#'   # Assuming you have a valid vpcObj, you can compute gradients as follows:
+#'   result <- gradients(vpcObj, method = "numerical")
+#' }
+#'
+#' @export
 gradients <- function(vpcObj, method="numerical") {
   modObj <- vpcObj$modObj
   beta <- modObj$beta
@@ -190,7 +222,7 @@ rmixtnorm <- function(mean, Sigma, pis, n=10, truncated=TRUE) {
   has_sig11 <- names(mean) %in% "sig11"
   has_sig22 <- names(mean) %in% "sig22"
   has_sig11_sig22 <- names(mean) %in% c("sig11", "sig22")
-
+  lower <- c(-Inf, -Inf, 0, 0, -Inf, 0)
   # Determine which component each sample belongs to
   idxs <- findInterval(rng, pis) + 1  # Assigns component indices (1,2,3,4)
 
@@ -202,41 +234,99 @@ rmixtnorm <- function(mean, Sigma, pis, n=10, truncated=TRUE) {
 
   ## Component 1: No truncation, full MVN sample
   mask1 <- (idxs == 1)
-  result[mask1, ] <- mvtnorm::rmvnorm(sum(mask1), sigma=Sigma)
+  if(any(mask1)) {
+    lower1 <- lower
+    result[mask1,] <- tmvtnorm::rtmvnorm(sum(mask1), sigma=Sigma, lower=lower1)
+  }
 
   ## Component 2: Truncate dimensions **not labeled** "sig11"
   mask2 <- (idxs == 2)
-  if (any(mask2)) {
+  if(any(mask2)) {
     idx <- !has_sig11
-    lower <- ifelse(has_sig22[idx], 0, -Inf)
-    result[mask2, idx] <- if (truncated) {
-      tmvtnorm::rtmvnorm(sum(mask2), sigma=Sigma[idx, idx, drop=FALSE], lower=lower)
-    } else {
-      mvtnorm::rmvnorm(sum(mask2), sigma=Sigma[idx, idx, drop=FALSE])
-    }
+    lower2 <- lower[idx]
+    result[mask2, idx] <- tmvtnorm::rtmvnorm(sum(mask2),
+                                             sigma=Sigma[idx, idx, drop=FALSE],
+                                             lower=lower2)
   }
 
   ## Component 3: Truncate dimensions **not labeled** "sig22"
   mask3 <- (idxs == 3)
-  if (any(mask3)) {
+  if(any(mask3)){
     idx <- !has_sig22
-    lower <- ifelse(has_sig11[idx], 0, -Inf)
-    result[mask3, idx] <- if (truncated) {
-      tmvtnorm::rtmvnorm(sum(mask3), sigma=Sigma[idx, idx, drop=FALSE], lower=lower)
-    } else {
-      mvtnorm::rmvnorm(sum(mask3), sigma=Sigma[idx, idx, drop=FALSE])
-    }
+    lower3 <- lower[idx]
+    result[mask3, idx] <- tmvtnorm::rtmvnorm(sum(mask3),
+                                             sigma=Sigma[idx, idx, drop=FALSE],
+                                             lower=lower3)
   }
-
   ## Component 4: No truncation, subset of MVN
   mask4 <- (idxs == 4)
-  if (any(mask4)) {
+  if(any(mask4)){
     idx <- !has_sig11_sig22
-    result[mask4, idx] <- mvtnorm::rmvnorm(sum(mask4), sigma=Sigma[idx, idx, drop=FALSE])
+    lower4 <- lower[idx]
+    result[mask4, idx] <- tmvtnorm::rtmvnorm(sum(mask4),
+                                             sigma=Sigma[idx, idx, drop=FALSE],
+                                             lower=lower4)
   }
 
   return(result)
 }
+
+# rmixtnorm <- function(mean, Sigma, pis, n=10, truncated=TRUE) {
+#   # Generate n uniform samples for selecting mixture components
+#   rng <- stats::runif(n)
+#   pis <- cumsum(pis)
+#
+#   # Identify truncation conditions
+#   has_sig11 <- names(mean) %in% "sig11"
+#   has_sig22 <- names(mean) %in% "sig22"
+#   has_sig11_sig22 <- names(mean) %in% c("sig11", "sig22")
+#
+#   # Determine which component each sample belongs to
+#   idxs <- findInterval(rng, pis) + 1  # Assigns component indices (1,2,3,4)
+#
+#   # Pre-allocate result matrix
+#   result <- matrix(0, nrow=n, ncol=length(mean))
+#   colnames(result) <- names(mean)
+#
+#   # Sample from different components **in batches** (instead of looping)
+#
+#   ## Component 1: No truncation, full MVN sample
+#   mask1 <- (idxs == 1)
+#   result[mask1, ] <- mvtnorm::rmvnorm(sum(mask1), sigma=Sigma)
+#
+#   ## Component 2: Truncate dimensions **not labeled** "sig11"
+#   mask2 <- (idxs == 2)
+#   if (any(mask2)) {
+#     idx <- !has_sig11
+#     lower <- ifelse(has_sig22[idx], 0, -Inf)
+#     result[mask2, idx] <- if (truncated) {
+#       tmvtnorm::rtmvnorm(sum(mask2), sigma=Sigma[idx, idx, drop=FALSE], lower=lower)
+#     } else {
+#       mvtnorm::rmvnorm(sum(mask2), sigma=Sigma[idx, idx, drop=FALSE])
+#     }
+#   }
+#
+#   ## Component 3: Truncate dimensions **not labeled** "sig22"
+#   mask3 <- (idxs == 3)
+#   if (any(mask3)) {
+#     idx <- !has_sig22
+#     lower <- ifelse(has_sig11[idx], 0, -Inf)
+#     result[mask3, idx] <- if (truncated) {
+#       tmvtnorm::rtmvnorm(sum(mask3), sigma=Sigma[idx, idx, drop=FALSE], lower=lower)
+#     } else {
+#       mvtnorm::rmvnorm(sum(mask3), sigma=Sigma[idx, idx, drop=FALSE])
+#     }
+#   }
+#
+#   ## Component 4: No truncation, subset of MVN
+#   mask4 <- (idxs == 4)
+#   if (any(mask4)) {
+#     idx <- !has_sig11_sig22
+#     result[mask4, idx] <- mvtnorm::rmvnorm(sum(mask4), sigma=Sigma[idx, idx, drop=FALSE])
+#   }
+#
+#   return(result)
+# }
 
 # rmixtnorm <- function(mean, Sigma, pis, n=10, truncated = TRUE) {
 #   rng <- stats::runif(n)
