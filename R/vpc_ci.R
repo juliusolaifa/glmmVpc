@@ -393,7 +393,7 @@ rmixtnorm <- function(mean, Sigma, pis, n=10, truncated=TRUE) {
 #'
 #' @export
 #'
-qmixtnorm <- function(mean, Sigma, pis, grad, alpha=0.05, n=100, truncated=TRUE) {
+qmixtnorm <- function(mean, Sigma, pis, grad, alpha=0.05, n=1000, truncated=TRUE) {
   mixtnorm <- rmixtnorm(mean=mean, Sigma=Sigma, pis=pis, n=n, truncated=truncated)
   rvpc <- mixtnorm %*% grad
   stats::quantile(rvpc, c(alpha/2, 1-alpha/2))
@@ -564,6 +564,7 @@ vcov.vpcObj <- function(object, ...) {
 #'   - "adjusted.s": Using the Delta Method, adjusted for boundary conditions (Self & Liang)
 #'   - "adjusted.c": Using the Delta Method, adjusted for boundary conditions (Chant)
 #' @param iter Integer. The number of bootstrap iterations to perform if `type = "bootstrap"`. Default is 100.
+#' @param n Integer. The number of monte-carlo samples used for `adjusted_mixture_ci` . Default is 1000.
 #' @param num_cores Integer. The number of cores to use for parallel computation in the bootstrap method. Default is 1.
 #' @param verbose Logical. If `TRUE`, additional information is provided regarding model convergence and positive definiteness of the Hessian matrix.
 #' @param prob.type Method use in calculating the mixture weights for adjusted method
@@ -575,8 +576,8 @@ vcov.vpcObj <- function(object, ...) {
 confint.vpcObj <- function(vpcObj, alpha = 0.05,
                            type = c("classical", "bootstrap",
                                     "adjusted.s", "adjusted.c"),
-                           num_cores = 4, iter=100,verbose = FALSE,
-                           prob.type="self") {
+                           num_cores = 4, iter=100,n=1000,
+                           verbose = FALSE, prob.type="self") {
   type <- match.arg(type)
   vpc.value <- vpcObj$vpc
 
@@ -585,9 +586,9 @@ confint.vpcObj <- function(vpcObj, alpha = 0.05,
   } else if (type == "bootstrap") {
     ci <- boostrap_vpc_ci(vpcObj, iter = iter, num_cores = num_cores, alpha = alpha)
   } else if (type == "adjusted.s") {
-    ci <- adjustedc_mixture_ci(vpcObj, vpc.value, alpha = alpha, n = 1000)
+    ci <- adjustedc_mixture_ci(vpcObj, vpc.value, alpha = alpha, n = n)
   } else if (type == "adjusted.c") {
-    ci <- adjustedc_mixture_ci(vpcObj, vpc.value, alpha = alpha, n = 1000,
+    ci <- adjustedc_mixture_ci(vpcObj, vpc.value, alpha = alpha, n = n,
                                truncated = FALSE, prob.type = prob.type)
   }
 

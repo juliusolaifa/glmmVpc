@@ -4,7 +4,7 @@
 \alias{qmixtnorm}
 \title{Quantile Computation for a Mixture of Multivariate & Truncated Normals}
 \usage{
-qmixtnorm(mean, Sigma, pis, grad, alpha = 0.05, n = 100, truncated = TRUE)
+qmixtnorm(mean, Sigma, pis, grad, alpha = 0.05, n = 1000, truncated = TRUE)
 }
 \arguments{
 \item{mean}{A numeric vector representing the mean of each component in the multivariate normal distribution.}
