@@ -17,10 +17,10 @@ extractParametersByFamily <- function(family, modObj) {
     Sigma <- unname(glmmTMB::VarCorr(modObj)$cond)[[1]]
     # Strip all attributes from Sigma
     attr(Sigma, "stddev") <- attr(Sigma, "correlation") <- attr(Sigma, "blockCode") <- NULL
-    # If Sigma is scalar, square it to represent the variance
-    if(length(Sigma) == 1) {
-      Sigma <- Sigma^2
-    }
+    # If Sigma is already a 1 x 1 variance matrix
+    # if(length(Sigma) == 1) {
+    #   Sigma <- Sigma^2
+    # }
 
     return(list(beta = beta, Sigma = Sigma))
   }
