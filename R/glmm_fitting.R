@@ -148,6 +148,11 @@ nobs.glmmfit <- function(object, ...) {
 vcov.glmmfit <- function(object, ...) {
   modObj <- object$modObj
   vcovObj <- stats::vcov(modObj, full = TRUE)
+  m <- stats::coef(modObj)
+  J <- diag(length(m))
+  idx <- which(names(m) == "theta")
+  J[idx,idx] <- m[idx]
+  vcovObj <- J %*% vcovObj %*% t(J)
   rownames(vcovObj) <- colnames(vcovObj) <- par_names(object, object$family)
   return(vcovObj)
 }
