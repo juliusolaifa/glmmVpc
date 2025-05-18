@@ -23,7 +23,7 @@
 #' Sigma <- matrix(c(1, 0.5, 0.5, 1), nrow = 2)
 #' phi <- 1.5
 #' x <- 1
-#' gradient_vpc_engine(beta, Sigma, phi, family = "negative_binomial", x=1,method = "symbolic")
+#' gradient_vpc_engine(beta, Sigma, phi, family = "negative_binomial", x=1,method = "numerical")
 #'
 #' # Example for Tweedie family
 #' power <- 1.5
@@ -83,14 +83,14 @@ gradient_vpc_engine <- function(beta, Sigma, phi, family, x=NULL, power = NULL, 
   dynamic_func <- eval(parse(text = function_string))
   param_list <- strsplit(param_str, ", ")[[1]]
 
-  # Compute symbolic gradient if method = "symbolic"
-  if (method == "symbolic") {
-    gradvpc <- sapply(param_list, function(param) {
-      deriv_func <- Deriv::Deriv(dynamic_func, param)
-      result <- do.call(deriv_func, as.list(param_values))
-      result[1]
-    })
-  }
+  # # Compute symbolic gradient if method = "symbolic"
+  # if (method == "symbolic") {
+  #   gradvpc <- sapply(param_list, function(param) {
+  #     deriv_func <- Deriv::Deriv(dynamic_func, param)
+  #     result <- do.call(deriv_func, as.list(param_values))
+  #     result[1]
+  #   })
+  # }
 
   # Compute numerical gradient if method = "numerical"
   if (method == "numerical") {
@@ -100,8 +100,140 @@ gradient_vpc_engine <- function(beta, Sigma, phi, family, x=NULL, power = NULL, 
       do.call(dynamic_func, param_list)
     }, param_values)
     names(gradvpc) <- names(param_values)
+
+    hessvpc <- numDeriv::hessian(function(params) {
+      param_list <- as.list(params)
+      names(param_list) <- names(param_values)
+      do.call(dynamic_func, param_list)
+    }, param_values)
+
   }
+
+
   return(gradvpc)
+}
+
+#' Hessian of the VPC for Negative‑Binomial or Tweedie GLMMs
+#'
+#' Computes the numerical Hessian of the variance–partitioning coefficient (VPC)
+#' with respect to the full parameter vector
+#' \eqn{\Theta = (\beta, \phi, \operatorname{vech}(\Sigma))}.
+#' The function builds a temporary, family‑specific wrapper around your
+#' mean/variance helpers (`mu()`, `sig()`) and VPC calculators
+#' (`vpc.nb()`, `vpc.tw()`), then calls **numDeriv**’s
+#' \code{\link[numDeriv]{hessian}}.
+#'
+#' @param beta Numeric vector of fixed‑effect coefficients
+#'   \eqn{(\beta_0, \beta_1, \dots)}.
+#' @param Sigma Covariance matrix of the random effects (square, symmetric).
+#' @param phi  Dispersion parameter:
+#'   * negative‑binomial: inverse size (i.e. 1/\eqn{k});
+#'   * tweedie: precision \eqn{\phi}.
+#' @param family Character string, one of \code{"negative_binomial"} or
+#'   \code{"tweedie"}.
+#' @param x     Optional design vector (or matrix) of covariates passed to
+#'   \code{mu()} and \code{sig()}.  If \code{NULL}, those helpers must handle
+#'   the absence of covariates internally.
+#' @param power Tweedie power parameter \eqn{p}.  **Required** when
+#'   \code{family == "tweedie"}; ignored otherwise.
+#' @param method Character, currently only \code{"numerical"} is implemented.
+#'
+#' @details
+#' The function:
+#' \enumerate{
+#'   \item Constructs a parameterised function
+#'         \eqn{f(\Theta)} that returns the VPC for the chosen family;
+#'   \item Dumps that function into an R expression via \code{eval(parse())};
+#'   \item Calls \code{numDeriv::hessian()} at the supplied parameter values.
+#' }
+#' Helper utilities that must exist in the calling environment:
+#' \itemize{
+#'   \item \code{construct_beta_param_str()}, \code{construct_sigma_param_str()}
+#'         – build comma‑separated parameter names for dynamic evaluation.
+#'   \item \code{mat2vec()} – half‑vectorises \eqn{\Sigma}.
+#'   \item \code{mu()}, \code{sig()} – mean/variance functions.
+#'   \item \code{vpc.nb()}, \code{vpc.tw()} – family‑specific VPC calculators.
+#' }
+#'
+#' @return A square numeric matrix – the Hessian of the VPC with row/column
+#'   names matching the parameter vector order
+#'   \code{c(beta, phi, vech(Sigma))}.
+#'
+#' @examples
+#' # Example for Negative Binomial family
+#' beta <- c(1, 2)
+#' Sigma <- matrix(c(1, 0.5, 0.5, 1), nrow = 2)
+#' phi <- 1.5
+#' x <- 1
+#'hess_vpc_engine(beta, Sigma, phi, family = "negative_binomial", x=1,method = "numerical")
+#'
+#' # Example for Tweedie family
+#' power <- 1.5
+#' hess_vpc_engine(beta, Sigma, phi, family = "tweedie", x=1, power = power, method = "numerical")
+#'
+#' @export
+hess_vpc_engine <- function(beta, Sigma, phi, family, x=NULL, power = NULL, method) {
+
+  if (family == "tweedie" && is.null(power)) {
+    stop("Parameter 'power' is required for Tweedie family.")
+  }
+
+  # Construct the function string dynamically
+  beta_str <- construct_beta_param_str(beta)
+  Sigma_str <- construct_sigma_param_str(Sigma)
+  param_str <- switch(family,
+                      "negative_binomial" = paste(beta_str, "phi", Sigma_str, sep = ", "),
+                      "tweedie" = paste(beta_str, "phi", Sigma_str, "power", sep = ", ")
+  )
+
+  param_values <- switch(family,
+                         "negative_binomial" = c(
+                           stats::setNames(beta, paste0("b", seq_along(beta) - 1)),
+                           phi = phi,
+                           mat2vec(Sigma)),
+                         "tweedie" = c(
+                           stats::setNames(beta, paste0("b", seq_along(beta) - 1)),
+                           phi = phi,
+                           mat2vec(Sigma),
+                           power = power)
+  )
+
+  function_string <- switch(family,
+                            "negative_binomial" = paste0(
+                              "function(", param_str, ") {",
+                              "beta_vals <- c(", beta_str, "); ",
+                              "sigma_vals <- c(", Sigma_str, "); ",
+                              "mean <- mu(beta_vals, x); ",
+                              "variance <- sig(sigma_vals,x); ",
+                              "vpc.nb(mean, variance, phi); ",
+                              "}"
+                            ),
+                            "tweedie" = paste0(
+                              "function(", param_str, ") {",
+                              "beta_vals <- c(", beta_str, "); ",
+                              "sigma_vals <- c(", Sigma_str, "); ",
+                              "mean <- mu(beta_vals, x); ",
+                              "variance <- sig(sigma_vals,x); ",
+                              "vpc.tw(mean, variance, phi, power); ",
+                              "}"
+                            ),
+                            stop(paste("Gradient for", family, "not implemented."))
+  )
+
+  dynamic_func <- eval(parse(text = function_string))
+  param_list <- strsplit(param_str, ", ")[[1]]
+
+  # Compute numerical gradient if method = "numerical"
+  if (method == "numerical") {
+    hessvpc <- numDeriv::hessian(function(params) {
+      param_list <- as.list(params)
+      names(param_list) <- names(param_values)
+      do.call(dynamic_func, param_list)
+    }, param_values)
+
+    rownames(hessvpc) <- colnames(hessvpc) <- names(param_values)
+  }
+  return(hessvpc)
 }
 
 
@@ -158,6 +290,69 @@ gradients <- function(vpcObj, method="numerical") {
                       method=method)
 }
 
+#' Compute the Hessian for a VPC Model
+#'
+#' Extracts the model parameters stored in \code{vpcObj} and passes them to
+#' the internal helper \code{hess_vpc_engine()} to obtain the numerical (or
+#' analytic, when implemented) Hessian of the variance–partitioning
+#' coefficient (VPC) with respect to the full parameter vector
+#' \eqn{\Theta = (\beta, \phi, \mathrm{vech}(\Sigma))}.
+#'
+#' @param vpcObj A list containing the fitted model and its data context.
+#'   It must include:
+#'   \describe{
+#'     \item{\code{modObj}}{A sub‑list with elements
+#'       \code{beta} (numeric vector of fixed effects),
+#'       \code{Sigma} (random‑effect covariance matrix),
+#'       \code{phi} (dispersion parameter),
+#'       \code{family} (character; currently \code{"negative_binomial"} or
+#'       \code{"tweedie"}), and—when \code{family == "tweedie"}—\code{power}.}
+#'     \item{\code{x}}{Design matrix or covariate vector used by the model.}
+#'   }
+#' @param method Character string indicating the differentiation method.
+#'   Currently only \code{"numerical"} is available.  Default is
+#'   \code{"numerical"}.
+#'
+#' @return A square numeric matrix: the Hessian of the VPC evaluated at the
+#'   supplied parameter values.  Row and column names correspond to
+#'   \code{c(beta, phi, vech(Sigma))}.
+#'
+#' @details
+#' For Tweedie models, the power parameter \code{power} must be supplied
+#' in \code{modObj}; otherwise the function stops with an error.  All heavy
+#' lifting is delegated to \code{hess_vpc_engine()}, which computes the Hessian
+#' via \code{numDeriv::hessian()} unless future analytic routines are added.
+#'
+#' @seealso \code{\link{hess_vpc_engine}}
+#'
+#' @examples
+#' \dontrun{
+#'   ## Suppose 'vpcObj' is a previously created VPC fit object
+#'   H <- hessians(vpcObj, method = "numerical")
+#'   print(H)
+#' }
+#'
+#' @export
+hessians <- function(vpcObj, method="numerical") {
+  modObj <- vpcObj$modObj
+  beta <- modObj$beta
+  Sigma <- modObj$Sigma
+  phi <- modObj$phi
+  family <- modObj$family
+  x <- vpcObj$x
+  power <- modObj$power
+  if (family == "tweedie" && is.null(power)) {
+    stop("Parameter 'power' must be provided for Tweedie family in vpcObj.")
+  }
+
+  hess_vpc_engine(beta=beta,
+                      Sigma=Sigma,
+                      phi=phi,
+                      family=family,
+                      x=x,
+                      power = power,
+                      method=method)
+}
 
 #' Generate random samples from a mixture of (optionally truncated) multivariate normals
 #'
@@ -637,6 +832,21 @@ confint.VpcObj <- function(VpcObj, alpha = 0.05,
                                                    num_cores=num_cores,
                                                    verbose=verbose,
                                                    prob.type=prob.type)))
+}
+
+
+
+projV <- function(v,idx=NULL) {
+  if(is.null(idx))
+    return(v)
+  else{
+    I <- diag(nrow(v))
+    B <- diag(0,nrow=nrow(v))
+    diag(B)[idx] <- 1
+    P <- I-v%*%B%*%MASS::ginv(t(B)%*%v%*%B)%*%t(B)
+  }
+  V <- P%*%v%*%t(P)
+  return(V[-idx,-idx])
 }
 
 

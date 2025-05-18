@@ -38,7 +38,7 @@ beta <- c(1, 2)
 Sigma <- matrix(c(1, 0.5, 0.5, 1), nrow = 2)
 phi <- 1.5
 x <- 1
-gradient_vpc_engine(beta, Sigma, phi, family = "negative_binomial", x=1,method = "symbolic")
+gradient_vpc_engine(beta, Sigma, phi, family = "negative_binomial", x=1,method = "numerical")
 
 # Example for Tweedie family
 power <- 1.5
