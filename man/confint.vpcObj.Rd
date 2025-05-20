@@ -8,6 +8,7 @@
   VpcObj,
   alpha = 0.05,
   type = c("classical", "bootstrap", "adjusted.s", "adjusted.c"),
+  order = 1,
   iter = 100,
   num_cores = 4,
   verbose = FALSE,
@@ -26,6 +27,8 @@
 \item "adjusted.s": Using the Delta Method, adjusted for boundary conditions (Self & Liang)
 \item "adjusted.c": Using the Delta Method, adjusted for boundary conditions (Chant)
 }}
+
+\item{order}{An integer indicating if the first order or second order taylo approximation should be used for the delta method}
 
 \item{iter}{Integer. The number of bootstrap iterations to perform (for bootstrap type). Default is 100.}
 

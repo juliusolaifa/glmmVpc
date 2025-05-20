@@ -764,6 +764,7 @@ vcov.vpcObj <- function(object,order=1, ...) {
 #'   - "bootstrap": Using a parametric bootstrap method.
 #'   - "adjusted.s": Using the Delta Method, adjusted for boundary conditions (Self & Liang)
 #'   - "adjusted.c": Using the Delta Method, adjusted for boundary conditions (Chant)
+#' @param order An integer indicating if the first order or second order taylo approximation should be used for the delta method
 #' @param iter Integer. The number of bootstrap iterations to perform if `type = "bootstrap"`. Default is 100.
 #' @param n Integer. The number of monte-carlo samples used for `adjusted_mixture_ci` . Default is 1000.
 #' @param num_cores Integer. The number of cores to use for parallel computation in the bootstrap method. Default is 1.
@@ -777,13 +778,13 @@ vcov.vpcObj <- function(object,order=1, ...) {
 confint.vpcObj <- function(vpcObj, alpha = 0.05,
                            type = c("classical", "bootstrap",
                                     "adjusted.s", "adjusted.c"),
-                           num_cores = 4, iter=100,n=1000,
+                           order=1, num_cores = 4, iter=100,n=1000,
                            verbose = FALSE, prob.type="self") {
   type <- match.arg(type)
   vpc.value <- vpcObj$vpc
 
   if (type == "classical") {
-    ci <- classical_vpc_ci(vpcObj, vpc.value, alpha = alpha)
+    ci <- classical_vpc_ci(vpcObj, vpc.value, order=order,alpha = alpha)
   } else if (type == "bootstrap") {
     ci <- boostrap_vpc_ci(vpcObj, iter = iter, num_cores = num_cores, alpha = alpha)
   } else if (type == "adjusted.s") {
@@ -818,6 +819,7 @@ confint.vpcObj <- function(vpcObj, alpha = 0.05,
 #'   - "bootstrap": Using a parametric bootstrap method.
 #'   - "adjusted.s": Using the Delta Method, adjusted for boundary conditions (Self & Liang)
 #'   - "adjusted.c": Using the Delta Method, adjusted for boundary conditions (Chant)
+#' @param order An integer indicating if the first order or second order taylo approximation should be used for the delta method
 #' @param iter Integer. The number of bootstrap iterations to perform (for bootstrap type). Default is 100.
 #' @param num_cores Integer. The number of cores to use for parallel computation in the bootstrap method. Default is 1.
 #' @param verbose Logical. If `TRUE`, provides additional information about model convergence and the Hessian matrix's positive definiteness.
@@ -830,12 +832,12 @@ confint.vpcObj <- function(vpcObj, alpha = 0.05,
 confint.VpcObj <- function(VpcObj, alpha = 0.05,
                            type = c("classical", "bootstrap",
                                     "adjusted.s", "adjusted.c"),
-                           iter = 100, num_cores = 4,
+                           order=1,iter = 100, num_cores = 4,
                            verbose = FALSE, prob.type = "self") {
   type <- match.arg(type)
   t(sapply(VpcObj, function(vpcObj) stats::confint(vpcObj, alpha=alpha,
-                                                   type=type, iter=iter,
-                                                   num_cores=num_cores,
+                                                   type=type, order=order,
+                                                   iter=iter,num_cores=num_cores,
                                                    verbose=verbose,
                                                    prob.type=prob.type)))
 }
