@@ -713,13 +713,14 @@ adjustedc_mixture_ci <- function(vpcObj, vpc.value, alpha=0.05, n=1000,
 #'
 #' @param vpcObj An object containing the VPC model with variance-covariance information.
 #' @param vpc.value Numeric. The VPC value for which the confidence interval is to be computed.
+#' @param order An integer indicating if the first order or second order taylo approximation should be used for the delta method
 #' @param alpha Numeric. The significance level for the confidence interval (default is 0.05).
 #'
 #' @return A numeric vector of length 2 containing the lower and upper bounds of the confidence interval.
 #' @export
 #'
-classical_vpc_ci <- function(vpcObj, vpc.value, alpha = 0.05) {
-  stderr.vpc <- sqrt(stats::vcov(vpcObj))
+classical_vpc_ci <- function(vpcObj, vpc.value, order=1, alpha = 0.05) {
+  stderr.vpc <- sqrt(stats::vcov(vpcObj,order))
   crit.val <- stats::qnorm(1 - alpha / 2)
   ci <- c(vpc.value - crit.val * stderr.vpc, vpc.value + crit.val * stderr.vpc)
 
@@ -732,16 +733,21 @@ classical_vpc_ci <- function(vpcObj, vpc.value, alpha = 0.05) {
 #'
 #' This function computes the variance-covariance matrix for an object of class `vpcObj`.
 #'
-#' @param object An2 object of class `vpcObj` containing model information and gradients.
+#' @param object An object of class `vpcObj` containing model information and gradients.
+#' @param order An integer of 1 or 2
 #' @param ... Additional arguments (not used in this method).
 #'
 #' @return The variance of VPC obtained by Delta Method.
 #' @export
-vcov.vpcObj <- function(object, ...) {
+vcov.vpcObj <- function(object,order=1, ...) {
   grad.vpc <- gradients(object)
   vcov.mod <- stats::vcov(object$modObj)
-  n <- stats::nobs(object$modObj)
   var.vpc <- grad.vpc %*% vcov.mod %*% grad.vpc
+  if (order == 2) {
+    n <- stats::nobs(object$modObj)
+    hess.vpc <- hessians(object)
+    var.vpc <- var.vpc + (sum(diag(hess.vpc %*% vcov.mod)^2))/(2*n)
+  }
   return(var.vpc)
 }
 

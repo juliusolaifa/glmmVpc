@@ -4,10 +4,12 @@
 \alias{vcov.vpcObj}
 \title{Calculate the Variance-Covariance Matrix for a vpcObj}
 \usage{
-\method{vcov}{vpcObj}(object, ...)
+\method{vcov}{vpcObj}(object, order = 1, ...)
 }
 \arguments{
-\item{object}{An2 object of class \code{vpcObj} containing model information and gradients.}
+\item{object}{An object of class \code{vpcObj} containing model information and gradients.}
+
+\item{order}{An integer of 1 or 2}
 
 \item{...}{Additional arguments (not used in this method).}
 }
