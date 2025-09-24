@@ -354,245 +354,6 @@ hessians <- function(vpcObj, method="numerical") {
                       method=method)
 }
 
-#' Generate random samples from a mixture of (optionally truncated) multivariate normals
-#'
-#' This function generates \code{n} random draws from a mixture of up to four different
-#' (truncated or non-truncated) multivariate normal components, determined by
-#' \code{pis}. The function internally checks for entries named \code{"sig11"} or
-#' \code{"sig22"} in \code{mean} to decide how to truncate each component.
-#'
-#' @param mean A numeric vector of means for each dimension. The names of \code{mean} are used
-#'   to determine which dimensions potentially get truncated (\code{"sig11"} or \code{"sig22"}).
-#' @param Sigma A covariance matrix for the underlying multivariate normal distribution.
-#' @param pis A numeric vector of mixture proportions. Must sum up to \code{1}, and must have
-#'   length up to \code{4} to match the four possible components in the mixture.
-#' @param n An integer specifying the number of random draws to generate.
-#' @param truncated A logical flag. If \code{TRUE}, samples for certain components
-#'   are drawn from a truncated multivariate normal using \pkg{tmvtnorm}; if \code{FALSE},
-#'   the function uses \pkg{mvtnorm} without truncation for those components.
-#'
-#' @details
-#' The function does the following for each draw:
-#' \enumerate{
-#'   \item Draws a uniform random number \code{u}.
-#'   \item Checks which mixture component \code{u} falls into (based on \code{pis}).
-#'   \item Depending on the component, it selects which subset of dimensions to truncate at 0
-#'         (if \code{truncated=TRUE}) or sample normally:
-#'         \itemize{
-#'           \item Component 1: No truncation; draw from \code{mvtnorm::rmvnorm(1, Sigma)}.
-#'           \item Component 2: Truncate dimensions \emph{not} labeled \code{"sig11"}.
-#'           \item Component 3: Truncate dimensions \emph{not} labeled \code{"sig22"}.
-#'           \item Component 4: Neither \code{"sig11"} nor \code{"sig22"} dimensions are truncated.
-#'         }
-#' }
-#'
-#' @return A matrix with \code{n} rows and \code{length(mean)} columns, where each row is
-#'   one random draw from the specified mixture distribution.
-#'
-#' @examples
-#' \dontrun{
-#' set.seed(123)
-#'
-#' # Example: Suppose we have two dimensions, named "sig11" and "otherDim".
-#' # We'll draw from a mixture with two components (50/50) where
-#' #   - First component: standard MVN(0, I)
-#' #   - Second component: truncated in dimension "otherDim" >= 0
-#'
-#' my_mean  <- c(sig11 = 0, otherDim = 0)
-#' my_Sigma <- diag(2)
-#' my_pis   <- c(0.5, 0.5)  # two-component mixture
-#'
-#' samples <- rmixtnorm(mean = my_mean, Sigma = my_Sigma, pis = my_pis,
-#'                      n = 1000, truncated = TRUE)
-#' head(samples)
-#' }
-#'
-#' @export
-rmixtnorm <- function(mean, Sigma, pis, n=10, truncated=TRUE) {
-  # Generate n uniform samples for selecting mixture components
-  rng <- stats::runif(n)
-  pis <- cumsum(pis)
-
-  # Identify truncation conditions
-  has_sig11 <- names(mean) %in% "sig11"
-  has_sig22 <- names(mean) %in% "sig22"
-  has_sig11_sig22 <- names(mean) %in% c("sig11", "sig22")
-  lower <- c(-Inf, -Inf, 0, 0, -Inf, 0)
-  # Determine which component each sample belongs to
-  idxs <- findInterval(rng, pis) + 1  # Assigns component indices (1,2,3,4)
-
-  # Pre-allocate result matrix
-  result <- matrix(0, nrow=n, ncol=length(mean))
-  colnames(result) <- names(mean)
-
-  # Sample from different components **in batches** (instead of looping)
-
-  ## Component 1: No truncation, full MVN sample
-  mask1 <- (idxs == 1)
-  if(any(mask1)) {
-    lower1 <- lower
-    result[mask1,] <- tmvtnorm::rtmvnorm(sum(mask1), sigma=Sigma, lower=lower1)
-  }
-
-  ## Component 2: Truncate dimensions **not labeled** "sig11"
-  mask2 <- (idxs == 2)
-  if(any(mask2)) {
-    idx <- !has_sig11
-    lower2 <- lower[idx]
-    result[mask2, idx] <- tmvtnorm::rtmvnorm(sum(mask2),
-                                             sigma=Sigma[idx, idx, drop=FALSE],
-                                             lower=lower2)
-  }
-
-  ## Component 3: Truncate dimensions **not labeled** "sig22"
-  mask3 <- (idxs == 3)
-  if(any(mask3)){
-    idx <- !has_sig22
-    lower3 <- lower[idx]
-    result[mask3, idx] <- tmvtnorm::rtmvnorm(sum(mask3),
-                                             sigma=Sigma[idx, idx, drop=FALSE],
-                                             lower=lower3)
-  }
-  ## Component 4: No truncation, subset of MVN
-  mask4 <- (idxs == 4)
-  if(any(mask4)){
-    idx <- !has_sig11_sig22
-    lower4 <- lower[idx]
-    result[mask4, idx] <- tmvtnorm::rtmvnorm(sum(mask4),
-                                             sigma=Sigma[idx, idx, drop=FALSE],
-                                             lower=lower4)
-  }
-
-  return(result)
-}
-
-# rmixtnorm <- function(mean, Sigma, pis, n=10, truncated=TRUE) {
-#   # Generate n uniform samples for selecting mixture components
-#   rng <- stats::runif(n)
-#   pis <- cumsum(pis)
-#
-#   # Identify truncation conditions
-#   has_sig11 <- names(mean) %in% "sig11"
-#   has_sig22 <- names(mean) %in% "sig22"
-#   has_sig11_sig22 <- names(mean) %in% c("sig11", "sig22")
-#
-#   # Determine which component each sample belongs to
-#   idxs <- findInterval(rng, pis) + 1  # Assigns component indices (1,2,3,4)
-#
-#   # Pre-allocate result matrix
-#   result <- matrix(0, nrow=n, ncol=length(mean))
-#   colnames(result) <- names(mean)
-#
-#   # Sample from different components **in batches** (instead of looping)
-#
-#   ## Component 1: No truncation, full MVN sample
-#   mask1 <- (idxs == 1)
-#   result[mask1, ] <- mvtnorm::rmvnorm(sum(mask1), sigma=Sigma)
-#
-#   ## Component 2: Truncate dimensions **not labeled** "sig11"
-#   mask2 <- (idxs == 2)
-#   if (any(mask2)) {
-#     idx <- !has_sig11
-#     lower <- ifelse(has_sig22[idx], 0, -Inf)
-#     result[mask2, idx] <- if (truncated) {
-#       tmvtnorm::rtmvnorm(sum(mask2), sigma=Sigma[idx, idx, drop=FALSE], lower=lower)
-#     } else {
-#       mvtnorm::rmvnorm(sum(mask2), sigma=Sigma[idx, idx, drop=FALSE])
-#     }
-#   }
-#
-#   ## Component 3: Truncate dimensions **not labeled** "sig22"
-#   mask3 <- (idxs == 3)
-#   if (any(mask3)) {
-#     idx <- !has_sig22
-#     lower <- ifelse(has_sig11[idx], 0, -Inf)
-#     result[mask3, idx] <- if (truncated) {
-#       tmvtnorm::rtmvnorm(sum(mask3), sigma=Sigma[idx, idx, drop=FALSE], lower=lower)
-#     } else {
-#       mvtnorm::rmvnorm(sum(mask3), sigma=Sigma[idx, idx, drop=FALSE])
-#     }
-#   }
-#
-#   ## Component 4: No truncation, subset of MVN
-#   mask4 <- (idxs == 4)
-#   if (any(mask4)) {
-#     idx <- !has_sig11_sig22
-#     result[mask4, idx] <- mvtnorm::rmvnorm(sum(mask4), sigma=Sigma[idx, idx, drop=FALSE])
-#   }
-#
-#   return(result)
-# }
-
-# rmixtnorm <- function(mean, Sigma, pis, n=10, truncated = TRUE) {
-#   rng <- stats::runif(n)
-#   pis <- cumsum(pis)
-#   result <- matrix(NA,nrow=n, ncol = length(mean))
-#   colnames(result) <- names(mean)
-#   has_sig11 <- names(mean) %in% "sig11"
-#   has_sig22 <- names(mean) %in% "sig22"
-#   has_sig11_sig22 <- names(mean) %in% c("sig11","sig22")
-#
-#   sample_component <- function(sigma, lower, use_trunc) {
-#     if (use_trunc) {
-#       return(tmvtnorm::rtmvnorm(1, sigma = sigma, lower = lower))
-#     } else {
-#       return(mvtnorm::rmvnorm(1, sigma = sigma))
-#     }
-#   }
-#
-#   for(i in 1:n) {
-#     dat <- numeric(length(mean))
-#     names(dat) <- names(mean)
-#     if(rng[i] <= pis[1]) {
-#       dat <- mvtnorm::rmvnorm(1,sigma = Sigma)
-#     }
-#     else if(rng[i] <= pis[2]) {
-#       idx <- !has_sig11
-#       lower = ifelse(has_sig22[idx], 0, -Inf)
-#       dat.temp <- sample_component(Sigma[idx,idx, drop=F],lower, truncated)
-#       dat[idx] <- dat.temp
-#     }
-#     else if(rng[i] <= pis[3]) {
-#       idx <- !has_sig22
-#       lower = ifelse(has_sig11[idx], 0, -Inf)
-#       dat.temp <- sample_component(Sigma[idx,idx, drop=F],lower, truncated)
-#       dat[!has_sig22] <- dat.temp
-#     }
-#     else {
-#       idx <- !has_sig11_sig22
-#       dat.temp <- mvtnorm::rmvnorm(1,sigma=Sigma[idx, idx])
-#       dat[idx] <- dat.temp
-#     }
-#     result[i,] <- dat
-#   }
-#   return(result)
-# }
-
-#' Quantile Computation for a Mixture of Multivariate & Truncated Normals
-#'
-#' This function calculates the quantiles for a mixture of multivariate normal
-#' distributions
-#' based on the provided mean vector, covariance matrix, mixture proportions,
-#' and gradient vector.
-#' The quantiles are returned for the confidence interval specified by `alpha`.
-#'
-#' @param mean A numeric vector representing the mean of each component in the multivariate normal distribution.
-#' @param Sigma A covariance matrix associated with the multivariate normal distribution.
-#' @param pis A numeric vector of mixing proportions for the components of the mixture model. The elements of `pis` should sum to 1.
-#' @param grad A numeric vector representing the gradient, used to transform the sampled mixture data.
-#' @param alpha A numeric value specifying the significance level for the confidence interval (default is 0.05, which corresponds to a 95% confidence interval).
-#' @param n An integer specifying the number of samples to draw from the mixture distribution (default is 100).
-#' @param truncated Logical. Whether truncation should be used.
-#'
-#' @return A numeric vector of length 2 containing the lower and upper quantiles for the confidence interval, calculated as \code{c(alpha/2, 1 - alpha/2)}.
-#'
-#' @export
-#'
-qmixtnorm <- function(mean, Sigma, pis, grad, alpha=0.05, n=1000, truncated=TRUE) {
-  mixtnorm <- rmixtnorm(mean=mean, Sigma=Sigma, pis=pis, n=n, truncated=truncated)
-  rvpc <- mixtnorm %*% grad
-  stats::quantile(rvpc, c(alpha/2, 1-alpha/2))
-}
 
 #' Bootstrap Confidence Interval for VPC
 #'
@@ -660,50 +421,149 @@ boostrap_vpc_ci <- function(vpcObj, iter = 100, num_cores = 4, alpha = 0.05) {
   return(ci)
 }
 
-#' Confidence Interval Computation for VPC using Mixture Normal Quantiles
-#'
-#' This function calculates the confidence interval for the Variance Partition Coefficient (VPC)
-#' by computing quantiles from a mixture of normal distributions. The function extracts
-#' necessary parameters from a fitted model object and applies the `qmixtnorm` function.
-#'
-#' @param vpcObj An object containing the fitted model and additional VPC-related information.
-#' @param vpc.value Numeric. The VPC value for which the confidence interval is to be computed.
-#' @param alpha Numeric. The significance level for the confidence interval (default is 0.05).
-#' @param n Integer. Number of samples to draw for quantile estimation (default is 1000).
-#' @param truncated Logical. Whether truncation should be used.
-#' @param prob.type Method use in calculating the mixture weights
-#'
-#' @return A numeric vector of length 2 containing the lower and upper bounds of the confidence interval.
-#' @export
-#'
-adjustedc_mixture_ci <- function(vpcObj, vpc.value, alpha=0.05, n=1000,
-                                 truncated=TRUE,
-                                 prob.type="self") {
-  # Extract fitted model from vpcObj
-  fitObj <- vpcObj$modObj
 
-  # Obtain mean vector and covariance matrix from the model
+
+#' Sample from a Truncated Multivariate Normal Mixture
+#'
+#' This function generates random samples from a mixture of truncated multivariate normal
+#' distributions. Mixture components are defined by group-wise exclusions of variables.
+#' Each component is sampled according to mixture weights (`pis`) with optional truncation
+#' to enforce non-negativity constraints on specified variables.
+#'
+#' @param mean Numeric vector of means for the multivariate normal distribution.
+#' @param Sigma Positive-definite covariance matrix, with dimensions matching `mean`.
+#' @param pis Numeric vector of mixture probabilities of length \eqn{2^q}, where \eqn{q}
+#'   is the number of groups. Must sum to 1 (or will be normalized).
+#' @param n Integer, number of samples to generate. Default is 10.
+#' @param truncated Logical, whether to truncate variables (default `TRUE`). If `TRUE`,
+#'   variables matching `nonneg_prefix` are truncated below at 0.
+#' @param groups Named list specifying groups of variable names. Each group defines
+#'   coordinates that may be excluded in different mixture components.
+#' @param fill_excluded Value used to fill excluded variables (default `0`).
+#' @param nonneg_prefix Regular expression for variable names that must be non-negative
+#'   (default `"^sig"`).
+#'
+#' @return A numeric matrix of dimension \eqn{n \times p}, where \eqn{p = length(mean)}.
+#'   Rows correspond to generated samples, and columns to variables. Excluded coordinates
+#'   are filled with `fill_excluded`.
+#'
+#' @examples
+#' set.seed(123)
+#' mean  <- c(sig11 = 0, sig22 = 0, x3 = 1)
+#' Sigma <- diag(3)
+#' pis   <- c(0.5, 0.5)
+#' groups <- list(g1 = "sig11")
+#'
+#' .rtmvnorm_mix_core(mean, Sigma, pis, n = 5, groups = groups)
+#'
+#' @export
+.rtmvnorm_mix_core <- function(mean, Sigma, pis, n = 10, truncated = TRUE,
+                               groups = list(),          # e.g., list(g1="sig11", g2="sig22")
+                               fill_excluded = 0,
+                               nonneg_prefix = "^sig") {
+  stopifnot(nrow(Sigma) == length(mean), ncol(Sigma) == length(mean))
+  p  <- length(mean)
+  nm <- names(mean); if (is.null(nm)) nm <- paste0("x", seq_len(p))
+  names(mean) <- nm
+  colnames(Sigma) <- rownames(Sigma) <- nm
+
+  q <- length(groups)
+  n_comp <- 2^q
+  stopifnot(length(pis) == n_comp)
+
+  # group membership (logical) per group
+  group_idx <- lapply(groups, function(g) nm %in% g)
+
+  # mixture allocation
+  w     <- cumsum(pis / sum(pis))
+  comps <- findInterval(stats::runif(n), w) + 1L
+
+  # truncation bounds
+  if (truncated) {
+    lower <- rep(-Inf, p); lower[grepl(nonneg_prefix, nm)] <- 0
+    upper <- rep( Inf, p)
+  } else {
+    lower <- rep(-Inf, p); upper <- rep( Inf, p)
+  }
+
+  # prefill with excluded value; we'll overwrite the kept coords we sample
+  res <- matrix(fill_excluded, nrow = n, ncol = p, dimnames = list(NULL, nm))
+
+  for (c in seq_len(n_comp)) {
+    mask <- comps == c
+    if (!any(mask)) next
+
+    if (q == 0) {
+      keep <- rep(TRUE, p)
+    } else {
+      bits <- as.integer(intToBits(c - 1L))[seq_len(q)] == 1L
+      excl <- Reduce(`|`, Map(function(bit, idx) if (bit) idx else FALSE, bits, group_idx), init = FALSE)
+      keep <- !excl
+    }
+
+    if (!any(keep)) next  # nothing to sample for this component
+    k <- sum(mask)
+    res[mask, keep] <- tmvtnorm::rtmvnorm(
+      n = k,
+      mean  = mean[keep],
+      sigma = Sigma[keep, keep, drop = FALSE],
+      lower = lower[keep],
+      upper = upper[keep]
+    )
+  }
+  res
+}
+
+# Public wrappers (clean APIs)
+
+# q = 1 → 2 components: (0) keep all, (1) exclude group1
+rtmvnorm_mix1q <- function(mean, Sigma, pis, n = 10, truncated = TRUE,
+                           exclude = "sig11", fill_excluded = 0, nonneg_prefix = "^sig") {
+  .rtmvnorm_mix_core(mean, Sigma, pis, n, truncated,
+                     groups = list(g1 = exclude),
+                     fill_excluded = fill_excluded,
+                     nonneg_prefix = nonneg_prefix)
+}
+
+# q = 2 → 4 components: 00 keep all, 01 exclude group1, 10 exclude group2, 11 exclude group1∪group2
+rtmvnorm_mix2q <- function(mean, Sigma, pis, n = 10, truncated = TRUE,
+                           exclude1 = "sig11", exclude2 = "sig22",
+                           fill_excluded = 0, nonneg_prefix = "^sig") {
+  .rtmvnorm_mix_core(mean, Sigma, pis, n, truncated,
+                     groups = list(g1 = exclude1, g2 = exclude2),
+                     fill_excluded = fill_excluded,
+                     nonneg_prefix = nonneg_prefix)
+}
+
+qmixtnorm.x <- function(mean, Sigma, grad, alpha=0.05, n=1000, truncated=TRUE) {
+  if(mean["sig11"] <= 0.01 && mean["sig22"] <= 0.01) {
+    mix_func <- rtmvnorm_mix2q
+    pis <- c(0.25,0.25,0.25,0.25)
+  } else if (mean["sig22"] < 0.01) {
+    mix_func <- rtmvnorm_mix1q
+    pis <- c(0.5,0.5)
+  }
+  mixtnorm <- mix_func(mean=mean,Sigma=Sigma,pis=pis,n=n)
+  rvpc <- mixtnorm %*% grad
+  unname(stats::quantile(rvpc, c(alpha/2,1-alpha/2)))
+}
+
+adjustedc_mixture_ci <- function(vpcObj, vpc.value, alpha=0.05,n=1000,truncated=TRUE) {
+  # vpc.value <- vpcObj$vpc
+  fitObj <- vpcObj$modObj
   mean <- stats::coef(fitObj)
   Sigma <- stats::vcov(fitObj)
   n.sample <- nobs(fitObj)
 
-  # Calculate mixture proportions
   if(!fitObj$modObj$sdr$pdHess) {
     return(c(NA,NA))
-  }else{
-    p11 <- pr11(fitObj, prob.type)
-    pis <- c(p11, 0.25, 0.25, 0.5 - p11)
-
-    # Get gradient vector for transformation
-    grad <- gradients(vpcObj)
-
-    # Compute the confidence interval using mixture normal quantiles
-    qmix <- qmixtnorm(mean=mean, Sigma=Sigma, pis=pis,
-                      grad=grad, alpha=alpha, n=n, truncated=truncated)
+  } else {
+    grad <- glmmVpc::gradients(vpcObj)
+    qmix <- qmixtnorm.x(mean=mean, Sigma=Sigma,
+                        grad=grad, alpha=alpha, n=n)
     ci <- c(vpc.value - qmix[2], vpc.value - qmix[1])
     return(ci)
   }
-
 }
 
 #' Confidence Interval Calculation for VPC Using Standard Error and Critical Value
@@ -777,7 +637,7 @@ vcov.vpcObj <- function(object,order=1, ...) {
 #' @export
 confint.vpcObj <- function(vpcObj, alpha = 0.05,
                            type = c("classical", "bootstrap",
-                                    "adjusted.s", "adjusted.c"),
+                                    "adjusted"),
                            order=1, num_cores = 4, iter=100,n=1000,
                            verbose = FALSE, prob.type="self") {
   type <- match.arg(type)
@@ -787,12 +647,13 @@ confint.vpcObj <- function(vpcObj, alpha = 0.05,
     ci <- classical_vpc_ci(vpcObj, vpc.value, order=order,alpha = alpha)
   } else if (type == "bootstrap") {
     ci <- boostrap_vpc_ci(vpcObj, iter = iter, num_cores = num_cores, alpha = alpha)
-  } else if (type == "adjusted.s") {
+  } else if (type == "adjusted") {
     ci <- adjustedc_mixture_ci(vpcObj, vpc.value, alpha = alpha, n = n)
-  } else if (type == "adjusted.c") {
-    ci <- adjustedc_mixture_ci(vpcObj, vpc.value, alpha = alpha, n = n,
-                               truncated = FALSE, prob.type = prob.type)
   }
+  # else if (type == "adjusted.c") {
+  #   ci <- adjustedc_mixture_ci(vpcObj, vpc.value, alpha = alpha, n = n,
+  #                              truncated = FALSE, prob.type = prob.type)
+  # }
 
   result <- c(Lower = ci[1], VPC = vpc.value, Upper = ci[2])
   names(result) <- c("Lower", "VPC", "Upper")
@@ -844,18 +705,78 @@ confint.VpcObj <- function(VpcObj, alpha = 0.05,
 
 
 
-projV <- function(v,idx=NULL) {
-  if(is.null(idx))
-    return(v)
-  else{
-    I <- diag(nrow(v))
-    B <- diag(0,nrow=nrow(v))
-    diag(B)[idx] <- 1
-    P <- I-v%*%B%*%MASS::ginv(t(B)%*%v%*%B)%*%t(B)
-  }
-  V <- P%*%v%*%t(P)
-  return(V[-idx,-idx])
-}
-
-
-
+# projV <- function(v,idx=NULL) {
+#   if(is.null(idx))
+#     return(v)
+#   else{
+#     I <- diag(nrow(v))
+#     B <- diag(0,nrow=nrow(v))
+#     diag(B)[idx] <- 1
+#     P <- I-v%*%B%*%MASS::ginv(t(B)%*%v%*%B)%*%t(B)
+#   }
+#   V <- P%*%v%*%t(P)
+#   return(V[-idx,-idx])
+# }
+#
+#
+# adj_ci <- function(vpcObj, N = 1000, seed = NULL) {
+#   if (!is.null(seed)) set.seed(seed)
+#
+#   g <- glmmVpc::gradients(vpcObj)
+#   V <- stats::vcov(vpcObj$modObj)
+#   idx11 <- which(names(g) == "sig11")
+#   idx22 <- which(names(g) == "sig22")
+#
+#   draw_lin <- function(Vsub, gsub, lower, n) {
+#     Z <- tryCatch(tmvtnorm::rtmvnorm(n, sigma = Vsub, lower = lower),
+#                   error = function(e) matrix(NA_real_, n, length(gsub)))
+#     drop(Z %*% gsub)
+#   }
+#
+#   # ------------------------------------------------------------------
+#   draws <- numeric(0)
+#
+#   if ((idx11) < 0.01 && length(idx22) < 0.01) {
+#     # == two‑parameter boundary mixture ==================================
+#     V_bi <- V[c(idx11, idx22), c(idx11, idx22)]
+#     p1   <- glmmVpc::pr11(vpcObj$modObj)#as.numeric(mvtnorm::pmvnorm(c(0,0), c(Inf,Inf), sigma = V_bi))
+#     p2 <- p3 <- 0.25; p4 <- 0.5 - p1
+#     stopifnot(p4 >= 0)
+#     probs <- c(p1,p2,p3,p4)
+#     n_comp <- as.vector(stats::rmultinom(1, N, probs))
+#
+#     lower1 <- rep(-Inf,length(g)); lower1[c(idx11,idx22)] <- 0
+#     if (n_comp[1]) draws <- c(draws, draw_lin(V,g,lower1,n_comp[1]))
+#     if (n_comp[2]) {
+#       V2 <- projV(V, idx11); g2 <- g[-idx11]
+#       lower2 <- rep(-Inf,length(g2)); lower2[names(g2)=="sig22"] <- 0
+#       draws <- c(draws, draw_lin(V2,g2,lower2,n_comp[2]))
+#     }
+#     if (n_comp[3]) {
+#       V3 <- projV(V, idx22); g3 <- g[-idx22]
+#       lower3 <- rep(-Inf,length(g3)); lower3[names(g3)=="sig11"] <- 0
+#       draws <- c(draws, draw_lin(V3,g3,lower3,n_comp[3]))
+#     }
+#     if (n_comp[4]) {
+#       V4 <- projV(V, c(idx11,idx22)); g4 <- g[-c(idx11,idx22)]
+#       draws <- c(draws, draw_lin(V4,g4,rep(-Inf,length(g4)),n_comp[4]))
+#     }
+#   } else {
+#     # == single‑parameter boundary mixture ================================
+#     idx <- if (idx11 < 0.01) idx11 else idx22
+#     par_name <- names(g)[idx]
+#     n_comp <- as.vector(stats::rmultinom(1, N, prob = c(0.5,0.5)))
+#     lower_full <- rep(-Inf,length(g)); lower_full[idx] <- 0
+#     if (n_comp[1]) draws <- c(draws, draw_lin(V,g,lower_full,n_comp[1]))
+#     if (n_comp[2]) {
+#       V2 <- projV(V, idx); g2 <- g[-idx]
+#       lower2 <- rep(-Inf,length(g2)); lower2[names(g2)==par_name] <- 0
+#       draws <- c(draws, draw_lin(V2,g2,lower2,n_comp[2]))
+#     }
+#   }
+#
+#   delta <- stats::quantile(draws, c(0.975,0.025), na.rm = TRUE)
+#   vpc   <- vpcObj$vpc
+#   c(lower = vpc - delta[1], upper = vpc - delta[2])
+# }
+#
