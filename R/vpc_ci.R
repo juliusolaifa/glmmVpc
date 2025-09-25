@@ -555,7 +555,7 @@ adjustedc_mixture_ci <- function(vpcObj, vpc.value, alpha=0.05,n=1000,truncated=
   Sigma <- stats::vcov(fitObj)
   n.sample <- nobs(fitObj)
 
-  if(!(mean["sig11"] < 0.01 && mean["sig22"] < 0.01)) {
+  if(!(mean["sig11"] < 0.01) && !(mean["sig22"] < 0.01)) {
     return(classical_vpc_ci(vpcObj, vpc.value, order=1, alpha = alpha))
   }
 
