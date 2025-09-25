@@ -536,7 +536,7 @@ rtmvnorm_mix2q <- function(mean, Sigma, pis, n = 10, truncated = TRUE,
 }
 
 qmixtnorm.x <- function(mean, Sigma, grad, alpha=0.05, n=1000, truncated=TRUE) {
-  if(mean["sig11"] <= 0.01 && mean["sig22"] <= 0.01) {
+  if(mean["sig11"] < 0.01 && mean["sig22"] < 0.01) {
     mix_func <- rtmvnorm_mix2q
     pis <- c(0.25,0.25,0.25,0.25)
   } else if (mean["sig22"] < 0.01) {
@@ -554,6 +554,10 @@ adjustedc_mixture_ci <- function(vpcObj, vpc.value, alpha=0.05,n=1000,truncated=
   mean <- stats::coef(fitObj)
   Sigma <- stats::vcov(fitObj)
   n.sample <- nobs(fitObj)
+
+  if(!(mean["sig11"] < 0.01 && mean["sig22"] < 0.01)) {
+    return(classical_vpc_ci(vpcObj, vpc.value, order=1, alpha = alpha))
+  }
 
   if(!fitObj$modObj$sdr$pdHess) {
     return(c(NA,NA))
