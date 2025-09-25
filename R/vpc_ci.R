@@ -692,7 +692,7 @@ confint.vpcObj <- function(vpcObj, alpha = 0.05,
 #' @export
 confint.VpcObj <- function(VpcObj, alpha = 0.05,
                            type = c("classical", "bootstrap",
-                                    "adjusted.s", "adjusted.c"),
+                                    "adjusted"),
                            order=1,iter = 100, num_cores = 4,
                            verbose = FALSE, prob.type = "self") {
   type <- match.arg(type)
