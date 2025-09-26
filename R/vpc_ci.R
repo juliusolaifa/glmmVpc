@@ -422,6 +422,14 @@ boostrap_vpc_ci <- function(vpcObj, iter = 100, num_cores = 4, alpha = 0.05) {
 }
 
 
+.make_lower_from_names <- function(nm) {
+  lower <- rep(-Inf, length(nm))
+  names(lower) <- nm
+  # Only sig11 and sig22 are constrained >= 0 (present or absent)
+  lower[nm %in% c("sig11", "sig22")] <- 0
+  lower
+}
+
 
 #' Sample from a Truncated Multivariate Normal Mixture
 #'
@@ -440,8 +448,6 @@ boostrap_vpc_ci <- function(vpcObj, iter = 100, num_cores = 4, alpha = 0.05) {
 #' @param groups Named list specifying groups of variable names. Each group defines
 #'   coordinates that may be excluded in different mixture components.
 #' @param fill_excluded Value used to fill excluded variables (default `0`).
-#' @param nonneg_prefix Regular expression for variable names that must be non-negative
-#'   (default `"^sig"`).
 #'
 #' @return A numeric matrix of dimension \eqn{n \times p}, where \eqn{p = length(mean)}.
 #'   Rows correspond to generated samples, and columns to variables. Excluded coordinates
@@ -458,14 +464,18 @@ boostrap_vpc_ci <- function(vpcObj, iter = 100, num_cores = 4, alpha = 0.05) {
 #'
 #' @export
 .rtmvnorm_mix_core <- function(mean, Sigma, pis, n = 10, truncated = TRUE,
-                               groups = list(),          # e.g., list(g1="sig11", g2="sig22")
-                               fill_excluded = 0,
-                               nonneg_prefix = "^sig") {
+                                       groups = list(),          # e.g., list(g1="sig11", g2="sig22")
+                                       fill_excluded = 0) {
+
   stopifnot(nrow(Sigma) == length(mean), ncol(Sigma) == length(mean))
+
   p  <- length(mean)
   nm <- names(mean); if (is.null(nm)) nm <- paste0("x", seq_len(p))
   names(mean) <- nm
   colnames(Sigma) <- rownames(Sigma) <- nm
+
+  # first-version assumption: pis already sum to 1
+  stopifnot(abs(sum(pis) - 1) < 1e-10)
 
   q <- length(groups)
   n_comp <- 2^q
@@ -474,25 +484,22 @@ boostrap_vpc_ci <- function(vpcObj, iter = 100, num_cores = 4, alpha = 0.05) {
   # group membership (logical) per group
   group_idx <- lapply(groups, function(g) nm %in% g)
 
-  # mixture allocation
-  w     <- cumsum(pis / sum(pis))
+  # mixture allocation (no renormalization)
+  w     <- cumsum(pis)
   comps <- findInterval(stats::runif(n), w) + 1L
 
-  # truncation bounds
-  if (truncated) {
-    lower <- rep(-Inf, p); lower[grepl(nonneg_prefix, nm)] <- 0
-    upper <- rep( Inf, p)
-  } else {
-    lower <- rep(-Inf, p); upper <- rep( Inf, p)
-  }
+  # truncation bounds (always truncated per first version)
+  lower <- .make_lower_from_names(nm)
+  upper <- rep(Inf, p)
 
-  # prefill with excluded value; we'll overwrite the kept coords we sample
+  # prefill with zeros for excluded coords
   res <- matrix(fill_excluded, nrow = n, ncol = p, dimnames = list(NULL, nm))
 
   for (c in seq_len(n_comp)) {
     mask <- comps == c
     if (!any(mask)) next
 
+    # bitmask: bit=1 => EXCLUDE that group's coords (on the boundary face)
     if (q == 0) {
       keep <- rep(TRUE, p)
     } else {
@@ -501,38 +508,39 @@ boostrap_vpc_ci <- function(vpcObj, iter = 100, num_cores = 4, alpha = 0.05) {
       keep <- !excl
     }
 
-    if (!any(keep)) next  # nothing to sample for this component
+    if (!any(keep)) next
     k <- sum(mask)
+
+    # ZERO mean sampling to match first version (do NOT pass mean=)
     res[mask, keep] <- tmvtnorm::rtmvnorm(
       n = k,
-      mean  = mean[keep],
       sigma = Sigma[keep, keep, drop = FALSE],
       lower = lower[keep],
       upper = upper[keep]
     )
   }
+
   res
 }
 
+
 # Public wrappers (clean APIs)
 
-# q = 1 → 2 components: (0) keep all, (1) exclude group1
-rtmvnorm_mix1q <- function(mean, Sigma, pis, n = 10, truncated = TRUE,
-                           exclude = "sig11", fill_excluded = 0, nonneg_prefix = "^sig") {
-  .rtmvnorm_mix_core(mean, Sigma, pis, n, truncated,
-                     groups = list(g1 = exclude),
-                     fill_excluded = fill_excluded,
-                     nonneg_prefix = nonneg_prefix)
-}
-
-# q = 2 → 4 components: 00 keep all, 01 exclude group1, 10 exclude group2, 11 exclude group1∪group2
 rtmvnorm_mix2q <- function(mean, Sigma, pis, n = 10, truncated = TRUE,
                            exclude1 = "sig11", exclude2 = "sig22",
-                           fill_excluded = 0, nonneg_prefix = "^sig") {
+                           fill_excluded = 0) {
   .rtmvnorm_mix_core(mean, Sigma, pis, n, truncated,
-                     groups = list(g1 = exclude1, g2 = exclude2),
-                     fill_excluded = fill_excluded,
-                     nonneg_prefix = nonneg_prefix)
+                             groups = list(g1 = exclude1, g2 = exclude2),
+                             fill_excluded = fill_excluded)
+}
+
+# 2 components (exclude none / exclude one group)
+rtmvnorm_mix1q <- function(mean, Sigma, pis, n = 10, truncated = TRUE,
+                           exclude1 = "sig22",  # default mirrors your branch on sig22
+                           fill_excluded = 0) {
+  .rtmvnorm_mix_core(mean, Sigma, pis, n, truncated,
+                              groups = list(g1 = exclude1),
+                              fill_excluded = fill_excluded)
 }
 
 qmixtnorm.x <- function(mean, Sigma, grad, alpha=0.05, n=1000, truncated=TRUE) {

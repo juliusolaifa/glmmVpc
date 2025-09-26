@@ -11,8 +11,7 @@
   n = 10,
   truncated = TRUE,
   groups = list(),
-  fill_excluded = 0,
-  nonneg_prefix = "^sig"
+  fill_excluded = 0
 )
 }
 \arguments{
@@ -32,9 +31,6 @@ variables matching \code{nonneg_prefix} are truncated below at 0.}
 coordinates that may be excluded in different mixture components.}
 
 \item{fill_excluded}{Value used to fill excluded variables (default \code{0}).}
-
-\item{nonneg_prefix}{Regular expression for variable names that must be non-negative
-(default \code{"^sig"}).}
 }
 \value{
 A numeric matrix of dimension \eqn{n \times p}, where \eqn{p = length(mean)}.
