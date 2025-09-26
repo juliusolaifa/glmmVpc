@@ -535,7 +535,16 @@ rtmvnorm_mix2q <- function(mean, Sigma, pis, n = 10, truncated = TRUE,
 }
 
 # 2 components (exclude none / exclude one group)
-rtmvnorm_mix1q <- function(mean, Sigma, pis, n = 10, truncated = TRUE,
+rtmvnorm_mix1q_sig11 <- function(mean, Sigma, pis, n = 10, truncated = TRUE,
+                           exclude1 = "sig11",  # default mirrors your branch on sig11
+                           fill_excluded = 0) {
+  .rtmvnorm_mix_core(mean, Sigma, pis, n, truncated,
+                     groups = list(g1 = exclude1),
+                     fill_excluded = fill_excluded)
+}
+
+# 2 components (exclude none / exclude one group)
+rtmvnorm_mix1q_sig22 <- function(mean, Sigma, pis, n = 10, truncated = TRUE,
                            exclude1 = "sig22",  # default mirrors your branch on sig22
                            fill_excluded = 0) {
   .rtmvnorm_mix_core(mean, Sigma, pis, n, truncated,
@@ -547,9 +556,12 @@ qmixtnorm.x <- function(mean, Sigma, grad, alpha=0.05, n=1000, truncated=TRUE) {
   if(mean["sig11"] < 0.01 && mean["sig22"] < 0.01) {
     mix_func <- rtmvnorm_mix2q
     pis <- c(0.25,0.25,0.25,0.25)
-  } else if (mean["sig22"] < 0.01) {
-    mix_func <- rtmvnorm_mix1q
+  } else if (mean["sig11"] < 0.01) {
+    mix_func <- rtmvnorm_mix1q_sig11
     pis <- c(0.5,0.5)
+  } else if (mean["sig22"] < 0.01) {
+    pis <- c(0.5,0.5)
+    mix_func <- rtmvnorm_mix1q_sig22
   }
   mixtnorm <- mix_func(mean=mean,Sigma=Sigma,pis=pis,n=n)
   rvpc <- mixtnorm %*% grad
