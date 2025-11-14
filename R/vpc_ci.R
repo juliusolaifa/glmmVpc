@@ -552,14 +552,14 @@ rtmvnorm_mix1q_sig22 <- function(mean, Sigma, pis, n = 10, truncated = TRUE,
                               fill_excluded = fill_excluded)
 }
 
-qmixtnorm.x <- function(mean, Sigma, grad, alpha=0.05, n=1000, truncated=TRUE) {
-  if(mean["sig11"] < 0.01 && mean["sig22"] < 0.01) {
+qmixtnorm.x <- function(mean, Sigma, grad, alpha=0.05, n=1000, thresh=0.01, truncated=TRUE) {
+  if(mean["sig11"] < thresh && mean["sig22"] < thresh) {
     mix_func <- rtmvnorm_mix2q
     pis <- c(0.25,0.25,0.25,0.25)
-  } else if (mean["sig11"] < 0.01) {
+  } else if (mean["sig11"] < thresh) {
     mix_func <- rtmvnorm_mix1q_sig11
     pis <- c(0.5,0.5)
-  } else if (mean["sig22"] < 0.01) {
+  } else if (mean["sig22"] < thresh) {
     pis <- c(0.5,0.5)
     mix_func <- rtmvnorm_mix1q_sig22
   }
@@ -568,24 +568,28 @@ qmixtnorm.x <- function(mean, Sigma, grad, alpha=0.05, n=1000, truncated=TRUE) {
   unname(stats::quantile(rvpc, c(alpha/2,1-alpha/2)))
 }
 
-adjustedc_mixture_ci <- function(vpcObj, vpc.value, alpha=0.05,n=1000,truncated=TRUE) {
+adjustedc_mixture_ci <- function(vpcObj, vpc.value, alpha=0.05,n=1000, thresh=0.01,truncated=TRUE) {
   # vpc.value <- vpcObj$vpc
   fitObj <- vpcObj$modObj
   mean <- stats::coef(fitObj)
   Sigma <- stats::vcov(fitObj)
   n.sample <- nobs(fitObj)
+  flag <- NULL
 
-  if(!(mean["sig11"] < 0.01) && !(mean["sig22"] < 0.01)) {
-    return(classical_vpc_ci(vpcObj, vpc.value, order=1, alpha = alpha))
+  if(!(mean["sig11"] < thresh) && !(mean["sig22"] < thresh)) {
+    flag <- 0
+    cl <- classical_vpc_ci(vpcObj, vpc.value, order=1, alpha = alpha)
+    ci <- c(cl[1], cl[2], flag)
   }
 
   if(!fitObj$modObj$sdr$pdHess) {
-    return(c(NA,NA))
+    return(c(NA,NA,NA))
   } else {
+    flag <- 1
     grad <- glmmVpc::gradients(vpcObj)
     qmix <- qmixtnorm.x(mean=mean, Sigma=Sigma,
-                        grad=grad, alpha=alpha, n=n)
-    ci <- c(vpc.value - qmix[2], vpc.value - qmix[1])
+                        grad=grad, alpha=alpha, n=n, thresh=thresh)
+    ci <- c(vpc.value - qmix[2], vpc.value - qmix[1], flag)
     return(ci)
   }
 }
@@ -661,7 +665,7 @@ vcov.vpcObj <- function(object,order=1, ...) {
 #' @export
 confint.vpcObj <- function(vpcObj, alpha = 0.05,
                            type = c("classical", "bootstrap",
-                                    "adjusted"),
+                                    "adjusted"), thresh=0.01,
                            order=1, num_cores = 4, iter=100,n=1000,
                            verbose = FALSE, prob.type="self") {
   type <- match.arg(type)
@@ -672,7 +676,7 @@ confint.vpcObj <- function(vpcObj, alpha = 0.05,
   } else if (type == "bootstrap") {
     ci <- boostrap_vpc_ci(vpcObj, iter = iter, num_cores = num_cores, alpha = alpha)
   } else if (type == "adjusted") {
-    ci <- adjustedc_mixture_ci(vpcObj, vpc.value, alpha = alpha, n = n)
+    ci <- adjustedc_mixture_ci(vpcObj, vpc.value, alpha = alpha, n = n, thresh=thresh)
   }
   # else if (type == "adjusted.c") {
   #   ci <- adjustedc_mixture_ci(vpcObj, vpc.value, alpha = alpha, n = n,
@@ -709,6 +713,7 @@ confint.vpcObj <- function(vpcObj, alpha = 0.05,
 #' @param num_cores Integer. The number of cores to use for parallel computation in the bootstrap method. Default is 1.
 #' @param verbose Logical. If `TRUE`, provides additional information about model convergence and the Hessian matrix's positive definiteness.
 #' @param prob.type Method use in calculating the mixture weights for adjusted method
+#' @param thresh Integer. Definition of the boundary
 #'
 #' @return A vector with three elements: Lower bound, the VPC estimate, and the upper bound of the confidence interval.
 #'   Additional information is included if `verbose = TRUE`. Returns `NA` if the model did not converge or if the Hessian is not positive definite.
@@ -716,12 +721,12 @@ confint.vpcObj <- function(vpcObj, alpha = 0.05,
 #' @export
 confint.VpcObj <- function(VpcObj, alpha = 0.05,
                            type = c("classical", "bootstrap",
-                                    "adjusted"),
+                                    "adjusted"), thresh=0.01,
                            order=1,iter = 100, num_cores = 4,
                            verbose = FALSE, prob.type = "self") {
   type <- match.arg(type)
   t(sapply(VpcObj, function(vpcObj) stats::confint(vpcObj, alpha=alpha,
-                                                   type=type, order=order,
+                                                   type=type, thresh=thresh, order=order,
                                                    iter=iter,num_cores=num_cores,
                                                    verbose=verbose,
                                                    prob.type=prob.type)))
