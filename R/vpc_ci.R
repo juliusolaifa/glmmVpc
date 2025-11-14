@@ -701,6 +701,11 @@ confint.vpcObj <- function(vpcObj, alpha = 0.05,
   result <- c(Lower = ci[1], VPC = vpc.value, Upper = ci[2])
   names(result) <- c("Lower", "VPC", "Upper")
 
+  if(type == "adjusted") {
+    result <- c(Lower = ci[1], VPC = vpc.value, Upper = ci[2],Flag = ci[3])
+    names(result) <- c("Lower", "VPC", "Upper","Flag")
+  }
+
   if (verbose) {
     convergence.code <- vpcObj$modObj$modObj$fit$convergence == 0
     pdHessian <- vpcObj$modObj$modObj$sdr$pdHess
