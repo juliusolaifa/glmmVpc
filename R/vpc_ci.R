@@ -576,10 +576,11 @@ adjustedc_mixture_ci <- function(vpcObj, vpc.value, alpha=0.05,n=1000, thresh=0.
   n.sample <- nobs(fitObj)
   flag <- NULL
 
-  if(!(mean["sig11"] < thresh) && !(mean["sig22"] < thresh)) {
+  if((mean["sig11"] >= thresh) && (mean["sig22"] >= thresh)) {
     flag <- 0
     cl <- classical_vpc_ci(vpcObj, vpc.value, order=1, alpha = alpha)
     ci <- c(cl[1], cl[2], flag)
+    return(ci)
   }
 
   if(!fitObj$modObj$sdr$pdHess) {
