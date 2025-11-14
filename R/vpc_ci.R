@@ -568,6 +568,19 @@ qmixtnorm.x <- function(mean, Sigma, grad, alpha=0.05, n=1000, thresh=0.01, trun
   unname(stats::quantile(rvpc, c(alpha/2,1-alpha/2)))
 }
 
+#' Adjusted Confidence Interval Calculation for VPC
+#'
+#' @param vpcObj An object containing the VPC model with variance-covariance information.
+#' @param vpc.value Numeric. The VPC value for which the confidence interval is to be computed.
+#' @param alpha Numeric. The significance level for the confidence interval (default is 0.05).
+#' @param n number of bootstrap samples
+#' @param thresh Integer. Definition of the boundary
+#' @param truncated currently not used
+#'
+#' @return the confidence interval
+#' @export
+#'
+#' @examples
 adjustedc_mixture_ci <- function(vpcObj, vpc.value, alpha=0.05,n=1000, thresh=0.01,truncated=TRUE) {
   # vpc.value <- vpcObj$vpc
   fitObj <- vpcObj$modObj
@@ -576,7 +589,7 @@ adjustedc_mixture_ci <- function(vpcObj, vpc.value, alpha=0.05,n=1000, thresh=0.
   n.sample <- nobs(fitObj)
   flag <- NULL
 
-  if((mean["sig11"] >= thresh) && (mean["sig22"] >= thresh)) {
+  if(mean["sig11"] >= thresh && mean["sig22"] >= thresh) {
     flag <- 0
     cl <- classical_vpc_ci(vpcObj, vpc.value, order=1, alpha = alpha)
     ci <- c(cl[1], cl[2], flag)
@@ -653,6 +666,7 @@ vcov.vpcObj <- function(object,order=1, ...) {
 #'   - "bootstrap": Using a parametric bootstrap method.
 #'   - "adjusted.s": Using the Delta Method, adjusted for boundary conditions (Self & Liang)
 #'   - "adjusted.c": Using the Delta Method, adjusted for boundary conditions (Chant)
+#' @param thresh Integer. Definition of the boundary
 #' @param order An integer indicating if the first order or second order taylo approximation should be used for the delta method
 #' @param iter Integer. The number of bootstrap iterations to perform if `type = "bootstrap"`. Default is 100.
 #' @param n Integer. The number of monte-carlo samples used for `adjusted_mixture_ci` . Default is 1000.
