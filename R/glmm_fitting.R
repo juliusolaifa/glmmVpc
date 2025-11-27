@@ -151,6 +151,7 @@ vcov.glmmfit <- function(object,forcePD=FALSE, ...) {
   vcovObj <- stats::vcov(modObj, full = TRUE)
   if(any(eigen(vcovObj)$values <= 0) && forcePD) {
     vcovObj <- Matrix::nearPD(vcovObj)$mat
+    print(vcovObj)
   }
   m <- stats::coef(object)
   J <- diag(length(m))
