@@ -90,7 +90,7 @@ singleGLMMFit <- function(formula, data, family, refit = FALSE, timeout=3) {
     return(NULL)
   }
 
-    if(refit && (modObj_original$fit$convergence == 1 || !modObj_original$sdr$pdHess)){
+    if(refit && (modObj_original$fit$convergence == 1)){# || !modObj_original$sdr$pdHess)){
       print("Re-fitting")
       modObj <- R.utils::withTimeout({
         stats::update(modObj_original, control=glmmTMB::glmmTMBControl(
@@ -131,6 +131,7 @@ nobs.glmmfit <- function(object, ...) {
 #' regression parameters, family specific parameters and variance component of the random effect
 #'
 #' @param object A fitted GLMM object of class \code{glmmfit}.
+#' @param forcePD whether the nearest positive matrix should be used
 #' @param ... Additional arguments (currently not used).
 #'
 #' @return A matrix containing the variance-covariance matrix of the estimated parameters.
@@ -145,9 +146,12 @@ nobs.glmmfit <- function(object, ...) {
 #' @seealso \code{\link[stats]{vcov}} for the generic variance-covariance method.
 #'
 #' @export
-vcov.glmmfit <- function(object, ...) {
+vcov.glmmfit <- function(object,forcePD=FALSE, ...) {
   modObj <- object$modObj
   vcovObj <- stats::vcov(modObj, full = TRUE)
+  if(any(eigen(vcovObj)$values <= 0) && forcePD) {
+    vcovObj <- Matrix::nearPD(vcovObj)$mat
+  }
   m <- stats::coef(object)
   J <- diag(length(m))
   idx <- which(names(m) == "theta")

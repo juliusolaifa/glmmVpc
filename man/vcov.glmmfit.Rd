@@ -4,10 +4,12 @@
 \alias{vcov.glmmfit}
 \title{Variance-Covariance Matrix for GLMM Fit}
 \usage{
-\method{vcov}{glmmfit}(object, ...)
+\method{vcov}{glmmfit}(object, forcePD = FALSE, ...)
 }
 \arguments{
 \item{object}{A fitted GLMM object of class \code{glmmfit}.}
+
+\item{forcePD}{whether the nearest positive matrix should be used}
 
 \item{...}{Additional arguments (currently not used).}
 }

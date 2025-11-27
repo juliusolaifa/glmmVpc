@@ -7,6 +7,7 @@
 adjustedc_mixture_ci(
   vpcObj,
   vpc.value,
+  forcePD = F,
   alpha = 0.05,
   n = 1000,
   thresh = 0.01,
@@ -17,6 +18,8 @@ adjustedc_mixture_ci(
 \item{vpcObj}{An object containing the VPC model with variance-covariance information.}
 
 \item{vpc.value}{Numeric. The VPC value for which the confidence interval is to be computed.}
+
+\item{forcePD}{whether the nearest positive matrix should be used}
 
 \item{alpha}{Numeric. The significance level for the confidence interval (default is 0.05).}
 

@@ -4,10 +4,12 @@
 \alias{vcov.vpcObj}
 \title{Calculate the Variance-Covariance Matrix for a vpcObj}
 \usage{
-\method{vcov}{vpcObj}(object, order = 1, ...)
+\method{vcov}{vpcObj}(object, forcePD = F, order = 1, ...)
 }
 \arguments{
 \item{object}{An object of class \code{vpcObj} containing model information and gradients.}
+
+\item{forcePD}{whether the nearest positive matrix should be used}
 
 \item{order}{An integer of 1 or 2}
 

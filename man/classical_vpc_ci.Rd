@@ -4,12 +4,14 @@
 \alias{classical_vpc_ci}
 \title{Confidence Interval Calculation for VPC Using Standard Error and Critical Value}
 \usage{
-classical_vpc_ci(vpcObj, vpc.value, order = 1, alpha = 0.05)
+classical_vpc_ci(vpcObj, vpc.value, forcePD = F, order = 1, alpha = 0.05)
 }
 \arguments{
 \item{vpcObj}{An object containing the VPC model with variance-covariance information.}
 
 \item{vpc.value}{Numeric. The VPC value for which the confidence interval is to be computed.}
+
+\item{forcePD}{whether the nearest positive matrix should be used}
 
 \item{order}{An integer indicating if the first order or second order taylo approximation should be used for the delta method}
 

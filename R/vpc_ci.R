@@ -572,6 +572,7 @@ qmixtnorm.x <- function(mean, Sigma, grad, alpha=0.05, n=1000, thresh=0.01, trun
 #'
 #' @param vpcObj An object containing the VPC model with variance-covariance information.
 #' @param vpc.value Numeric. The VPC value for which the confidence interval is to be computed.
+#' @param forcePD whether the nearest positive matrix should be used
 #' @param alpha Numeric. The significance level for the confidence interval (default is 0.05).
 #' @param n number of bootstrap samples
 #' @param thresh Integer. Definition of the boundary
@@ -581,11 +582,12 @@ qmixtnorm.x <- function(mean, Sigma, grad, alpha=0.05, n=1000, thresh=0.01, trun
 #' @export
 #'
 #' @examples
-adjustedc_mixture_ci <- function(vpcObj, vpc.value, alpha=0.05,n=1000, thresh=0.01,truncated=TRUE) {
+adjustedc_mixture_ci <- function(vpcObj, vpc.value, forcePD=F, alpha=0.05,
+                                 n=1000, thresh=0.01,truncated=TRUE) {
   # vpc.value <- vpcObj$vpc
   fitObj <- vpcObj$modObj
   mean <- stats::coef(fitObj)
-  Sigma <- stats::vcov(fitObj)
+  Sigma <- stats::vcov(fitObj, forcePD)
   n.sample <- nobs(fitObj)
   flag <- NULL
 
@@ -615,14 +617,15 @@ adjustedc_mixture_ci <- function(vpcObj, vpc.value, alpha=0.05,n=1000, thresh=0.
 #'
 #' @param vpcObj An object containing the VPC model with variance-covariance information.
 #' @param vpc.value Numeric. The VPC value for which the confidence interval is to be computed.
+#' @param forcePD whether the nearest positive matrix should be used
 #' @param order An integer indicating if the first order or second order taylo approximation should be used for the delta method
 #' @param alpha Numeric. The significance level for the confidence interval (default is 0.05).
 #'
 #' @return A numeric vector of length 2 containing the lower and upper bounds of the confidence interval.
 #' @export
 #'
-classical_vpc_ci <- function(vpcObj, vpc.value, order=1, alpha = 0.05) {
-  stderr.vpc <- sqrt(stats::vcov(vpcObj,order))
+classical_vpc_ci <- function(vpcObj, vpc.value, forcePD=F, order=1, alpha = 0.05) {
+  stderr.vpc <- sqrt(stats::vcov(vpcObj,forcePD, order))
   crit.val <- stats::qnorm(1 - alpha / 2)
   ci <- c(vpc.value - crit.val * stderr.vpc, vpc.value + crit.val * stderr.vpc)
 
@@ -636,14 +639,15 @@ classical_vpc_ci <- function(vpcObj, vpc.value, order=1, alpha = 0.05) {
 #' This function computes the variance-covariance matrix for an object of class `vpcObj`.
 #'
 #' @param object An object of class `vpcObj` containing model information and gradients.
+#' @param forcePD whether the nearest positive matrix should be used
 #' @param order An integer of 1 or 2
 #' @param ... Additional arguments (not used in this method).
 #'
 #' @return The variance of VPC obtained by Delta Method.
 #' @export
-vcov.vpcObj <- function(object,order=1, ...) {
+vcov.vpcObj <- function(object,forcePD=F, order=1, ...) {
   grad.vpc <- gradients(object)
-  vcov.mod <- stats::vcov(object$modObj)
+  vcov.mod <- stats::vcov(object$modObj, forcePD)
   var.vpc <- grad.vpc %*% vcov.mod %*% grad.vpc
   if (order == 2) {
     n <- stats::nobs(object$modObj)

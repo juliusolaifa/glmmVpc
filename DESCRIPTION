@@ -19,6 +19,7 @@ Imports:
     DESeq2,
     glmmTMB,
     MASS,
+    Matrix,
     numDeriv,
     pbapply,
     R.utils,
