@@ -151,7 +151,6 @@ vcov.glmmfit <- function(object,forcePD=FALSE, ...) {
   vcovObj <- stats::vcov(modObj, full = TRUE)
   if(any(eigen(vcovObj)$values <= 0) && forcePD) {
     vcovObj <- Matrix::nearPD(vcovObj)$mat
-    print(vcovObj)
   }
   m <- stats::coef(object)
   J <- diag(length(m))
@@ -159,6 +158,7 @@ vcov.glmmfit <- function(object,forcePD=FALSE, ...) {
   J[idx,idx] <- m[idx]
   vcovObj <- J %*% vcovObj %*% t(J)
   rownames(vcovObj) <- colnames(vcovObj) <- par_names(object, object$family)
+  print(vcovObj)
   return(vcovObj)
 }
 
