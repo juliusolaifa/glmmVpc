@@ -158,7 +158,6 @@ vcov.glmmfit <- function(object,forcePD=FALSE, ...) {
   J[idx,idx] <- m[idx]
   vcovObj <- as.matrix(J %*% vcovObj %*% t(J))
   rownames(vcovObj) <- colnames(vcovObj) <- par_names(object, object$family)
-  print(vcovObj)
   return(vcovObj)
 }
 
