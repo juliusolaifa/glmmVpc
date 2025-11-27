@@ -6,6 +6,7 @@
 \usage{
 \method{confint}{VpcObj}(
   VpcObj,
+  forcePD = F,
   alpha = 0.05,
   type = c("classical", "bootstrap", "adjusted"),
   thresh = 0.01,
@@ -18,6 +19,8 @@
 }
 \arguments{
 \item{VpcObj}{An object of class \code{vpcObj} containing the model fit and VPC estimates.}
+
+\item{forcePD}{whether the nearest positive matrix should be used}
 
 \item{alpha}{Significance level for the confidence intervals. Default is 0.05 (for 95\% CI).}
 

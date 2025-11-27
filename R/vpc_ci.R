@@ -664,6 +664,7 @@ vcov.vpcObj <- function(object,forcePD=F, order=1, ...) {
 #' from an object of class `vpcObj`. The function supports three confidence interval types: "classical", "bootstrap", and "adjusted".
 #'
 #' @param vpcObj An object of class `vpcObj` containing the model fit and VPC estimates.
+#' @param forcePD whether the nearest positive matrix should be used
 #' @param alpha Numeric. The significance level for the confidence intervals. Default is 0.05 (for a 95% CI).
 #' @param type Character. Specifies the type of confidence interval to compute. Options include:
 #'   - "classical": Based on the standard normal distribution.
@@ -682,7 +683,7 @@ vcov.vpcObj <- function(object,forcePD=F, order=1, ...) {
 #'   When `verbose = TRUE`, additional diagnostic details on convergence and the Hessian may be included. Returns `NA` if the model did not converge or if the Hessian is not positive definite.
 #'
 #' @export
-confint.vpcObj <- function(vpcObj, alpha = 0.05,
+confint.vpcObj <- function(vpcObj, forcePD=F, alpha = 0.05,
                            type = c("classical", "bootstrap",
                                     "adjusted"), thresh=0.01,
                            order=1, num_cores = 4, iter=100,n=1000,
@@ -691,11 +692,11 @@ confint.vpcObj <- function(vpcObj, alpha = 0.05,
   vpc.value <- vpcObj$vpc
 
   if (type == "classical") {
-    ci <- classical_vpc_ci(vpcObj, vpc.value, order=order,alpha = alpha)
+    ci <- classical_vpc_ci(vpcObj, forcePD, vpc.value, order=order,alpha = alpha)
   } else if (type == "bootstrap") {
     ci <- boostrap_vpc_ci(vpcObj, iter = iter, num_cores = num_cores, alpha = alpha)
   } else if (type == "adjusted") {
-    ci <- adjustedc_mixture_ci(vpcObj, vpc.value, alpha = alpha, n = n, thresh=thresh)
+    ci <- adjustedc_mixture_ci(vpcObj, forcePD, vpc.value, alpha = alpha, n = n, thresh=thresh)
   }
   # else if (type == "adjusted.c") {
   #   ci <- adjustedc_mixture_ci(vpcObj, vpc.value, alpha = alpha, n = n,
@@ -726,6 +727,7 @@ confint.vpcObj <- function(vpcObj, alpha = 0.05,
 #' from an object of class `vpcObj`. The function supports both classical and bootstrap confidence interval types.
 #'
 #' @param VpcObj An object of class `vpcObj` containing the model fit and VPC estimates.
+#' @param forcePD whether the nearest positive matrix should be used
 #' @param alpha Significance level for the confidence intervals. Default is 0.05 (for 95% CI).
 #' @param type Character. Specifies the type of confidence interval to compute. Options include:
 #'   - "classical": Based on the standard normal distribution.
@@ -743,13 +745,13 @@ confint.vpcObj <- function(vpcObj, alpha = 0.05,
 #'   Additional information is included if `verbose = TRUE`. Returns `NA` if the model did not converge or if the Hessian is not positive definite.
 #'
 #' @export
-confint.VpcObj <- function(VpcObj, alpha = 0.05,
+confint.VpcObj <- function(VpcObj, forcePD=F, alpha = 0.05,
                            type = c("classical", "bootstrap",
                                     "adjusted"), thresh=0.01,
                            order=1,iter = 100, num_cores = 4,
                            verbose = FALSE, prob.type = "self") {
   type <- match.arg(type)
-  t(sapply(VpcObj, function(vpcObj) stats::confint(vpcObj, alpha=alpha,
+  t(sapply(VpcObj, function(vpcObj) stats::confint(vpcObj, forcePD, alpha=alpha,
                                                    type=type, thresh=thresh, order=order,
                                                    iter=iter,num_cores=num_cores,
                                                    verbose=verbose,
