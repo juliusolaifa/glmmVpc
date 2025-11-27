@@ -156,7 +156,7 @@ vcov.glmmfit <- function(object,forcePD=FALSE, ...) {
   J <- diag(length(m))
   idx <- which(names(m) == "theta")
   J[idx,idx] <- m[idx]
-  vcovObj <- J %*% vcovObj %*% t(J)
+  vcovObj <- as.matrix(J %*% vcovObj %*% t(J))
   rownames(vcovObj) <- colnames(vcovObj) <- par_names(object, object$family)
   print(vcovObj)
   return(vcovObj)
