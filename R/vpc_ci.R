@@ -692,11 +692,11 @@ confint.vpcObj <- function(vpcObj, forcePD=F, alpha = 0.05,
   vpc.value <- vpcObj$vpc
 
   if (type == "classical") {
-    ci <- classical_vpc_ci(vpcObj, forcePD, vpc.value, order=order,alpha = alpha)
+    ci <- classical_vpc_ci(vpcObj=vpcObj, vpc.value=vpc.value,forcePD=forcePD, order=order,alpha = alpha)
   } else if (type == "bootstrap") {
     ci <- boostrap_vpc_ci(vpcObj, iter = iter, num_cores = num_cores, alpha = alpha)
   } else if (type == "adjusted") {
-    ci <- adjustedc_mixture_ci(vpcObj, forcePD, vpc.value, alpha = alpha, n = n, thresh=thresh)
+    ci <- adjustedc_mixture_ci(vpcObj=vpcObj, vpc.value=vpc.value, forcePD=forcePD, alpha = alpha, n = n, thresh=thresh)
   }
   # else if (type == "adjusted.c") {
   #   ci <- adjustedc_mixture_ci(vpcObj, vpc.value, alpha = alpha, n = n,
