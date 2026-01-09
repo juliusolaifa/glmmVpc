@@ -108,6 +108,11 @@ singleGLMMFit <- function(formula, data, family, refit = FALSE, timeout=3) {
     }else{
       modObj <- modObj_original #No refitting needed
     }
+  if(modObj$sdr$pdHess) {
+    print("Fitting a simpler model.")
+    formula <- as.formula(gsub("\\(X \\|", "(1 |", deparse(formula)))
+    modObj <- glmmTMB::glmmTMB(formula = formula, data = data, family = glmmTMBfamily)
+  }
 
   params <- extractParametersByFamily(family, modObj)
   params$modObj <- modObj
