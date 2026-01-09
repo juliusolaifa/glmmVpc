@@ -581,7 +581,6 @@ qmixtnorm.x <- function(mean, Sigma, grad, alpha=0.05, n=1000, thresh=0.01, trun
 #' @return the confidence interval
 #' @export
 #'
-#' @examples
 adjustedc_mixture_ci <- function(vpcObj, vpc.value, forcePD=F, alpha=0.05,
                                  n=1000, thresh=0.01,truncated=TRUE) {
   # vpc.value <- vpcObj$vpc
