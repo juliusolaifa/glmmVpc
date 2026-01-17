@@ -108,7 +108,15 @@ singleGLMMFit <- function(formula, data, family, refit = FALSE, timeout=3) {
     }else{
       modObj <- modObj_original #No refitting needed
     }
-  if(!modObj$sdr$pdHess) {
+  pdHess <- modObj$sdr$pdHess
+  V <- stats::vcov(modObj, full = TRUE)
+
+  # Safer: condition number of correlation matrix (scale-invariant)
+  D <- sqrt(diag(V))
+  R <- V / (D %o% D)              # correlation matrix implied by V
+  cond_num <- kappa(R)
+
+  if(!pdHess || is.na(cond_num) || cond_num >= 1e3) {
     print("Fitting a simpler model.")
     formula <- stats::as.formula(gsub("\\(X \\|", "(1 |", deparse(formula)))
     modObj <- glmmTMB::glmmTMB(formula = formula, data = data, family = glmmTMBfamily)
