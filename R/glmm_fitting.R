@@ -92,12 +92,12 @@ singleGLMMFit <- function(formula, data, family, refit = FALSE, timeout=3) {
 
     if(refit && (modObj_original$fit$convergence == 1)){# || !modObj_original$sdr$pdHess)){
       print("Re-fitting")
-      modObj <- R.utils::withTimeout({
+      modObj <- #R.utils::withTimeout({
         stats::update(modObj_original, control=glmmTMB::glmmTMBControl(
                                                     optimizer=stats::optim,
                                                     optArgs=list(method="BFGS")))
 
-        }, timeout = timeout*60, onTimeout = "silent")
+        #}, timeout = timeout*60, onTimeout = "silent")
 
       # If re-fitting time out fails, return the original object
       if (is.null(modObj)) {
