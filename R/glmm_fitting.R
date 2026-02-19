@@ -92,21 +92,24 @@ singleGLMMFit <- function(formula, data, family, refit = FALSE, timeout=3) {
 
     if(refit && (modObj_original$fit$convergence == 1)){# || !modObj_original$sdr$pdHess)){
       print("Re-fitting")
-      modObj <- #R.utils::withTimeout({
-        stats::update(modObj_original, control=glmmTMB::glmmTMBControl(
+      #R.utils::withTimeout({
+      mod_try <- tryCatch({stats::update(modObj_original, control=glmmTMB::glmmTMBControl(
                                                     optimizer=stats::optim,
                                                     optArgs=list(method="BFGS")))
+      }, error = function(e) NULL)
 
         #}, timeout = timeout*60, onTimeout = "silent")
 
       # If re-fitting time out fails, return the original object
-      if (is.null(modObj)) {
-        print("Re-fitting time out, Returning the original object")
+      if (!is.null(mod_try)) {
+        modObj <- mod_try
+      } else {
+        message("Re-fitting failed; returning original fit.")
         modObj <- modObj_original
       }
 
-    }else{
-      modObj <- modObj_original #No refitting needed
+    # }else{
+    #   modObj <- modObj_original #No refitting needed
     }
   pdHess <- modObj$sdr$pdHess
   V <- stats::vcov(modObj, full = TRUE)
