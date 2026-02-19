@@ -120,11 +120,19 @@ singleGLMMFit <- function(formula, data, family, refit = FALSE, timeout = 3) {
   cond_num <- tryCatch({
     V <- stats::vcov(modObj, full = TRUE)
     d <- diag(V)
-    if (any(!is.finite(d)) || any(d <= 0)) return(Inf)
-    D <- sqrt(d)
-    R <- V / (D %o% D)
-    if (any(!is.finite(R))) return(Inf)
-    kappa(R)
+
+    if (any(!is.finite(d)) || any(d <= 0)) {
+      Inf
+    } else {
+      D <- sqrt(d)
+      R <- V / (D %o% D)
+
+      if (any(!is.finite(R))) {
+        Inf
+      } else {
+        kappa(R)
+      }
+    }
   }, error = function(e) Inf)
 
   bad_hess <- !isTRUE(pdHess)
