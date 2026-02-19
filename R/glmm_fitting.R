@@ -63,75 +63,95 @@ extractParametersByFamily <- function(family, modObj) {
 #'
 #' @return A list with model parameters.
 #' @export
-singleGLMMFit <- function(formula, data, family, refit = FALSE, timeout=3) {
+singleGLMMFit <- function(formula, data, family, refit = FALSE, timeout = 3) {
 
-  if(!is.data.frame(data)) {
-    data <- as.data.frame(data)
-  }
-
+  if (!is.data.frame(data)) data <- as.data.frame(data)
   if (missing(formula) || missing(data) || missing(family)) {
     stop("Formula, data, and family are required inputs.")
   }
-  glmmTMBfamily <- tryCatch({
-    get_glmmTMBfamily(family)
-  }, error = function(e) {
-    stop("Error in creating glmmTMB family: ", e$message)
-  })
 
-  modObj_original <- tryCatch({
-    glmmTMB::glmmTMB(formula = formula, data = data, family = glmmTMBfamily)
-  }, error = function(e) {
-    message("Error fitting model: ", e$message)
-    return(NULL)
-  })
+  glmmTMBfamily <- tryCatch(
+    get_glmmTMBfamily(family),
+    error = function(e) stop("Error in creating glmmTMB family: ", e$message)
+  )
+
+  modObj_original <- tryCatch(
+    glmmTMB::glmmTMB(formula = formula, data = data, family = glmmTMBfamily),
+    error = function(e) { message("Error fitting model: ", e$message); NULL }
+  )
 
   if (is.null(modObj_original)) {
-    print("Original model fitting failed, returning NULL.")
+    message("Original model fitting failed, returning NULL.")
     return(NULL)
   }
 
-    if(refit && (modObj_original$fit$convergence == 1)){# || !modObj_original$sdr$pdHess)){
-      print("Re-fitting")
-      #R.utils::withTimeout({
-      mod_try <- tryCatch({stats::update(modObj_original, control=glmmTMB::glmmTMBControl(
-                                                    optimizer=stats::optim,
-                                                    optArgs=list(method="BFGS")))
-      }, error = function(e) NULL)
+  # IMPORTANT: always define modObj
+  modObj <- modObj_original
 
-        #}, timeout = timeout*60, onTimeout = "silent")
+  # Optional refit
+  if (refit && isTRUE(modObj_original$fit$convergence == 1)) {
+    message("Re-fitting")
 
-      # If re-fitting time out fails, return the original object
-      if (!is.null(mod_try)) {
-        modObj <- mod_try
-      } else {
-        message("Re-fitting failed; returning original fit.")
-        modObj <- modObj_original
-      }
+    mod_try <- tryCatch({
+      R.utils::withTimeout(
+        stats::update(
+          modObj_original,
+          control = glmmTMB::glmmTMBControl(
+            optimizer = stats::optim,
+            optArgs = list(method = "BFGS")
+          )
+        ),
+        timeout = timeout * 60,
+        onTimeout = "silent"
+      )
+    }, error = function(e) NULL)
 
-    # }else{
-    #   modObj <- modObj_original #No refitting needed
+    if (!is.null(mod_try)) {
+      modObj <- mod_try
+    } else {
+      message("Re-fitting failed or timed out; using original fit.")
+      modObj <- modObj_original
     }
-  pdHess <- modObj$sdr$pdHess
-  V <- stats::vcov(modObj, full = TRUE)
+  }
 
-  # Safer: condition number of correlation matrix (scale-invariant)
-  D <- sqrt(diag(V))
-  R <- V / (D %o% D)              # correlation matrix implied by V
-  cond_num <- kappa(R)
+  # Diagnostics (guarded)
+  pdHess <- tryCatch(modObj$sdr$pdHess, error = function(e) NA)
 
-  if(!pdHess || is.na(cond_num) || cond_num >= 1e3) {
-    print("Fitting a simpler model.")
-    formula <- stats::as.formula(gsub("\\(X \\|", "(1 |", deparse(formula)))
-    modObj <- glmmTMB::glmmTMB(formula = formula, data = data, family = glmmTMBfamily)
+  cond_num <- tryCatch({
+    V <- stats::vcov(modObj, full = TRUE)
+    d <- diag(V)
+    if (any(!is.finite(d)) || any(d <= 0)) return(Inf)
+    D <- sqrt(d)
+    R <- V / (D %o% D)
+    if (any(!is.finite(R))) return(Inf)
+    kappa(R)
+  }, error = function(e) Inf)
+
+  bad_hess <- !isTRUE(pdHess)
+  bad_cond <- !is.finite(cond_num) || cond_num >= 1e3
+
+  if (bad_hess || bad_cond) {
+    message("Fitting a simpler model.")
+
+    simple_formula <- tryCatch(
+      stats::as.formula(gsub("\\(X \\|", "(1 |", deparse(formula)[1])),
+      error = function(e) formula
+    )
+
+    mod_simple <- tryCatch(
+      glmmTMB::glmmTMB(formula = simple_formula, data = data, family = glmmTMBfamily),
+      error = function(e) NULL
+    )
+
+    if (!is.null(mod_simple)) modObj <- mod_simple
   }
 
   params <- extractParametersByFamily(family, modObj)
   params$modObj <- modObj
-
-
   class(params) <- "glmmfit"
-  return(params)
+  params
 }
+
 
 #' @importFrom stats nobs
 #' @export
