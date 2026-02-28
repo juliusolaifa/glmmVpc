@@ -138,21 +138,21 @@ singleGLMMFit <- function(formula, data, family, refit = FALSE, timeout = 3) {
   bad_hess <- !isTRUE(pdHess)
   bad_cond <- !is.finite(cond_num) || cond_num >= 1e3
 
-  if (bad_hess || bad_cond) {
-    message("Fitting a simpler model.")
-
-    simple_formula <- tryCatch(
-      stats::as.formula(gsub("\\(X \\|", "(1 |", deparse(formula)[1])),
-      error = function(e) formula
-    )
-
-    mod_simple <- tryCatch(
-      glmmTMB::glmmTMB(formula = simple_formula, data = data, family = glmmTMBfamily),
-      error = function(e) NULL
-    )
-
-    if (!is.null(mod_simple)) modObj <- mod_simple
-  }
+  # if (bad_hess || bad_cond) {
+  #   message("Fitting a simpler model.")
+  #
+  #   simple_formula <- tryCatch(
+  #     stats::as.formula(gsub("\\(X \\|", "(1 |", deparse(formula)[1])),
+  #     error = function(e) formula
+  #   )
+  #
+  #   mod_simple <- tryCatch(
+  #     glmmTMB::glmmTMB(formula = simple_formula, data = data, family = glmmTMBfamily),
+  #     error = function(e) NULL
+  #   )
+  #
+  #   if (!is.null(mod_simple)) modObj <- mod_simple
+  # }
 
   params <- extractParametersByFamily(family, modObj)
   params$modObj <- modObj
